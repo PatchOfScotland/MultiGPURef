@@ -60,7 +60,11 @@ int main(int argc, char* argv[]){
             if (i==j) continue;
             int canAccessPeer = 0;
             cudaDeviceCanAccessPeer(&canAccessPeer, i,j);
-            logging << "Device "<< i << " can access Device " << j << "\n";
+            if (canAccessPeer){
+                logging << "Device "<< i << " can access Device " << j << "\n";
+            } else {
+                logging << "Device "<< i << " cannot access Device " << j << "\n";
+            }
         }
     }
 
