@@ -55,8 +55,8 @@ int main(int argc, char* argv[]){
     init_arr< funcType >(d_in, 1337, N);
 
 
-    singleGPU::ApplyMap<MapBasic<funcType>>(d_in, d_out_singleGPU, N);
-    multiGPU::ApplyMap< MapBasic<funcType>>(d_in, d_out_multiGPU, N);
+    singleGPU::ApplyMap< MapBasic<funcType> >(d_in, d_out_singleGPU, N);
+    multiGPU::ApplyMap< MapBasic<funcType> >(d_in, d_out_multiGPU, N);
 
     if (!compare_arrays_nummeric<funcType>(d_out_singleGPU, d_out_multiGPU, N)){
         output << "INVALID RESULTS!";
@@ -71,12 +71,12 @@ int main(int argc, char* argv[]){
             gpuAssert(cudaEventCreate(&stop_event_m));
 
             gpuAssert(cudaEventRecord(start_event_s));
-            gpuAssert(singleGPU::ApplyMap<MapBasic<funcType>>(d_in, d_out_singleGPU, N));
+            gpuAssert(singleGPU::ApplyMap< MapBasic<funcType> >(d_in, d_out_singleGPU, N));
             gpuAssert(cudaEventRecord(stop_event_s));
             gpuAssert(cudaEventSynchronize(stop_event_s));
 
             gpuAssert(cudaEventRecord(start_event_m));
-            gpuAssert(multiGPU::ApplyMap<MapBasic<funcType>>(d_in, d_out_multiGPU, N));
+            gpuAssert(multiGPU::ApplyMap< MapBasic<funcType> >(d_in, d_out_multiGPU, N));
             gpuAssert(cudaEventRecord(stop_event_m));
             gpuAssert(cudaEventSynchronize(stop_event_m));
 
