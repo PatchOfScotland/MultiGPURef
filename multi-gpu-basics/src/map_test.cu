@@ -8,6 +8,8 @@
 #define ARRAY_SIZE 1e6
 #define ITERATIONS 25
 
+#define LOGGING 1
+
 typedef float funcType;
 
 template<class T>
@@ -40,6 +42,30 @@ int main(int argc, char* argv[]){
     } else {
         output.open("/dev/null");
     }
+
+    #if LOGGING
+    std::ofstream logging;
+    logging.open("HWINFO.log");
+    int deviceCount;
+    cudaGetDeviceCount(&deviceCount);
+    logging << "Number of devices: " << deviceCount << "\n";
+    for (int i = 0; i < deviceCount; i++){
+        cudaDeviceProp properties;
+        cudaGetDeviceProperties(&properties, i);
+        logging << "Device " << i << " name: " << properties.name << "\n";
+        logging << "Device can use Unified Memory:" << properties.unifiedAddressing << "\n";
+    }
+    for (int i = 0; i < deviceCount; i++){
+        for(int j = 0; j < deviceCount; j++){
+            if (i==j) continue;
+            int canAccessPeer = 0;
+            cudaDeviceCanAccessPeer(&canAccessPeer, i,j);
+            logging << "Device "<< i << " can access Device " << j << "\n";
+        }
+    }
+
+
+    #endif
 
     size_t N = ARRAY_SIZE;
     size_t data_size = N * sizeof(float);
