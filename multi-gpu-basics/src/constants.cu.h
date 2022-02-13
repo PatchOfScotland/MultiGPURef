@@ -5,6 +5,8 @@
 #define EPSILON 1e-5
 
 #include <iostream>
+#include <stdio.h>
+#include <stdlib.h>
 
 int gpuAssert(cudaError_t code) {
   if (code != cudaSuccess) {
