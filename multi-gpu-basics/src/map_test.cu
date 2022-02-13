@@ -5,7 +5,7 @@
 #include <iostream>
 #include <fstream>
 
-#define ARRAY_SIZE 1e8
+#define ARRAY_SIZE 1e6
 #define ITERATIONS 25
 
 typedef float funcType;
