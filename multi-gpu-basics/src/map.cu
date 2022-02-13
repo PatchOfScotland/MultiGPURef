@@ -17,7 +17,7 @@ __global__ void MapMultiGPU(typename MapFunc::InpElTp* input, typename MapFunc::
 
 
 template<class MapFunc>
-void ApplyMap(
+cudaError_t ApplyMap(
         typename MapFunc::InpElTp* input,
         typename MapFunc::RedElTp* output,
         size_t N
@@ -32,15 +32,18 @@ void ApplyMap(
         cudaSetDevice(i);
         MapMultiGPU< MapFunc ><<<num_blocks, BLOCKSIZE>>>(input, output, i, allocated_per_device, N);
     }
+    return cudaGetLastError();
 }
 }
 
 namespace singleGPU {
+
     template<class MapFunc>
-    void MapGPU(
+    __global__ void MapGPU(
         typename MapFunc::InpElTp* input,
         typename MapFunc::RedElTp* output,
-        size_t N){
+        size_t N
+    ){
             int64_t idx = blockDim.x*blockIdx.x + threadIdx.x;
             if (idx < N) {
                 output[idx] = MapFunc::apply(input[idx]);
@@ -49,13 +52,14 @@ namespace singleGPU {
 
 
     template<class MapFunc>
-    void ApplyMap(
+    cudaError_t ApplyMap(
         typename MapFunc::InpElTp* input,
         typename MapFunc::RedElTp* output,
         size_t N
     ){
         size_t num_blocks = (N + BLOCKSIZE - 1 ) / BLOCKSIZE;
-        MapGPU< Mapfunc ><<<num_blocks, BLOCKSIZE >>>(input, output, N)
+        MapGPU< MapFunc ><<<num_blocks, BLOCKSIZE >>>(input, output, N);
+        return cudaGetLastError();
     }
 }
 

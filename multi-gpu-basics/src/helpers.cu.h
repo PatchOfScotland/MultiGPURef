@@ -22,7 +22,7 @@ void init_arr(T* data, unsigned long seed, size_t N){
 }
 
 template<class T>
-void compare_arrays(T* arr1, T* arr2, size_t N){
+bool compare_arrays(T* arr1, T* arr2, size_t N){
     for(size_t i = 0; i < N; i++){
         if (arr1[i] != arr2[i]){
             return false;
@@ -32,7 +32,7 @@ void compare_arrays(T* arr1, T* arr2, size_t N){
 }
 
 template<class T>
-void compare_arrays_nummeric(T* arr1, T* arr2, size_t N){
+bool compare_arrays_nummeric(T* arr1, T* arr2, size_t N){
     for(size_t i = 0; i < N; i++){
         if (abs(arr1[i] - arr2[i]) > EPSILON){
             return false;
