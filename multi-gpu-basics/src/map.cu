@@ -32,6 +32,7 @@ cudaError_t ApplyMap(
         cudaSetDevice(i);
         MapMultiGPU< MapFunc ><<<num_blocks, BLOCKSIZE>>>(input, output, i, allocated_per_device, N);
     }
+    cudaSetDevice(0);
     return cudaGetLastError();
 }
 }
