@@ -5,4 +5,4 @@
 #SBATCH --mem=10000m
 #SBATCH -p gpu --gres=gpu:gtx1080:3
 
-./map_test GPU1080NUM3MAP.csv
+./mmm_test GPU1080NUM3MMM.csv
