@@ -16,9 +16,10 @@ __global__ void init_arr_kernel(T* data, unsigned long seed, size_t N){
 }
 
 template<class T>
-void init_arr(T* data, unsigned long seed, size_t N){
+cudaError_t init_arr(T* data, unsigned long seed, size_t N){
     int num_blocks = (N + BLOCKSIZE - 1 ) / BLOCKSIZE;
     init_arr_kernel<T><<<num_blocks, BLOCKSIZE>>>(data, seed, N);
+    return cudaGetLastError();
 }
 
 template<class T>

@@ -1,14 +1,14 @@
-#include "constants.cu.h"
-#include "map.cu"
-#include "helpers.cu.h"
-
 #include <iostream>
 #include <fstream>
+#include "constants.cu.h"
+#include "helpers.cu.h"
+#include "map.cu"
+
 
 #define ARRAY_SIZE 1e6
 #define ITERATIONS 25
 
-#define LOGGING 1
+#define LOGGING 0
 
 typedef float funcType;
 
@@ -44,31 +44,7 @@ int main(int argc, char* argv[]){
     }
 
     #if LOGGING
-    std::ofstream logging;
-    logging.open("HWINFO.log");
-    int deviceCount;
-    cudaGetDeviceCount(&deviceCount);
-    logging << "Number of devices: " << deviceCount << "\n";
-    for (int i = 0; i < deviceCount; i++){
-        cudaDeviceProp properties;
-        cudaGetDeviceProperties(&properties, i);
-        logging << "Device " << i << " name: " << properties.name << "\n";
-        logging << "Device can use Unified Memory:" << properties.unifiedAddressing << "\n";
-    }
-    for (int i = 0; i < deviceCount; i++){
-        for(int j = 0; j < deviceCount; j++){
-            if (i==j) continue;
-            int canAccessPeer = 0;
-            cudaDeviceCanAccessPeer(&canAccessPeer, i,j);
-            if (canAccessPeer){
-                logging << "Device "<< i << " can access Device " << j << "\n";
-            } else {
-                logging << "Device "<< i << " cannot access Device " << j << "\n";
-            }
-        }
-    }
-
-
+    LogHardware("HWINFO.log");
     #endif
 
     size_t N = ARRAY_SIZE;
@@ -82,7 +58,7 @@ int main(int argc, char* argv[]){
     gpuAssert(cudaMallocManaged((void**)&d_out_singleGPU, data_size));
     gpuAssert(cudaMallocManaged((void**)&d_out_multiGPU, data_size));
 
-    init_arr< funcType >(d_in, 1337, N);
+    gpuAssert(init_arr< funcType >(d_in, 1337, N));
 
 
     singleGPU::ApplyMap< MapBasic<funcType> >(d_in, d_out_singleGPU, N);
