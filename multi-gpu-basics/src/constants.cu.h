@@ -1,6 +1,7 @@
 #ifndef CONSTANTS_H
 #define CONSTANTS_H
 
+#define ITERATIONS 25
 #define BLOCKSIZE 256
 #define EPSILON 1e-5
 

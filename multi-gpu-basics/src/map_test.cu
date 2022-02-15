@@ -6,7 +6,6 @@
 
 
 #define ARRAY_SIZE 1e6
-#define ITERATIONS 25
 
 #define LOGGING 0
 

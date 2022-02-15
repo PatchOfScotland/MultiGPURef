@@ -9,7 +9,7 @@
 #define WIDTH_B  2048
 
 #define TILE 16
-    
+
 typedef float funcType;
 
 
@@ -31,6 +31,7 @@ int main(int argc, char* argv[]){
     size_t B_length = HEIGHT_B * WIDTH_B;
     size_t C_length = HEIGHT_A * WIDTH_B;
 
+
     funcType* A;
     funcType* B;
     funcType* C_single;
@@ -44,11 +45,15 @@ int main(int argc, char* argv[]){
 
     gpuAssert(init_arr< funcType >(A, 1337, A_length));
     gpuAssert(init_arr< funcType >(B, 420, B_length));
+    cudaDeviceSynchronize();
 
     gpuAssert(singleGPU::MMM< funcType, TILE >(A,B,C_single, HEIGHT_A, WIDTH_B, HEIGHT_B));
     gpuAssert(multiGPU::MMM< funcType, TILE >(A,B,C_multi, HEIGHT_A, WIDTH_B, HEIGHT_B));
+    cudaDeviceSynchronize();
 
     if(compare_arrays_nummeric< funcType >(C_single, C_multi, C_length)){
+        for(int run = 0; run < ITERATIONS; run++){
+
             cudaEvent_t start_event_m, stop_event_m;
             cudaEvent_t start_event_s, stop_event_s;
 
@@ -77,6 +82,7 @@ int main(int argc, char* argv[]){
             gpuAssert(cudaEventDestroy(stop_event_s));
             gpuAssert(cudaEventDestroy(start_event_m));
             gpuAssert(cudaEventDestroy(stop_event_m));
+        }
     } else {
         output << "Invalid Result \n";
     }
