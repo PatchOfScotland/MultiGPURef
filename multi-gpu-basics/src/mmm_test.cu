@@ -51,40 +51,44 @@ int main(int argc, char* argv[]){
     gpuAssert(multiGPU::MMM< funcType, TILE >(A,B,C_multi, HEIGHT_A, WIDTH_B, HEIGHT_B));
     cudaDeviceSynchronize();
 
-    if(compare_arrays_nummeric< funcType >(C_single, C_multi, C_length)){
-        for(int run = 0; run < ITERATIONS; run++){
-
-            cudaEvent_t start_event_m, stop_event_m;
-            cudaEvent_t start_event_s, stop_event_s;
-
-            gpuAssert(cudaEventCreate(&start_event_s));
-            gpuAssert(cudaEventCreate(&stop_event_s));
-            gpuAssert(cudaEventCreate(&start_event_m));
-            gpuAssert(cudaEventCreate(&stop_event_m));
-
-            gpuAssert(cudaEventRecord(start_event_s));
-            gpuAssert(singleGPU::MMM< funcType, TILE >(A,B,C_single, HEIGHT_A, WIDTH_B, HEIGHT_B));
-            gpuAssert(cudaEventRecord(stop_event_s));
-            gpuAssert(cudaEventSynchronize(stop_event_s));
-
-            gpuAssert(cudaEventRecord(start_event_m));
-            gpuAssert(multiGPU::MMM< funcType, TILE >(A,B,C_multi, HEIGHT_A, WIDTH_B, HEIGHT_B));
-            gpuAssert(cudaEventRecord(stop_event_m));
-            gpuAssert(cudaEventSynchronize(stop_event_m));
-
-            float ms_s = 0;
-            float ms_m = 0;
-            gpuAssert(cudaEventElapsedTime(&ms_s, start_event_s, stop_event_s));
-            gpuAssert(cudaEventElapsedTime(&ms_m, start_event_m, stop_event_m));
-            output << ms_s << ", " << ms_m << "\n";
-
-            gpuAssert(cudaEventDestroy(start_event_s));
-            gpuAssert(cudaEventDestroy(stop_event_s));
-            gpuAssert(cudaEventDestroy(start_event_m));
-            gpuAssert(cudaEventDestroy(stop_event_m));
-        }
+    
+    if(compare_arrays< funcType >(C_single, C_multi, C_length)){
+        output << "Valid output\n";
+        
     } else {
         output << "Invalid Result \n";
+    }
+
+    for(int run = 0; run < ITERATIONS; run++){
+
+        cudaEvent_t start_event_m, stop_event_m;
+        cudaEvent_t start_event_s, stop_event_s;
+
+        gpuAssert(cudaEventCreate(&start_event_s));
+        gpuAssert(cudaEventCreate(&stop_event_s));
+        gpuAssert(cudaEventCreate(&start_event_m));
+        gpuAssert(cudaEventCreate(&stop_event_m));
+
+        gpuAssert(cudaEventRecord(start_event_s));
+        gpuAssert(singleGPU::MMM< funcType, TILE >(A,B,C_single, HEIGHT_A, WIDTH_B, HEIGHT_B));
+        gpuAssert(cudaEventRecord(stop_event_s));
+        gpuAssert(cudaEventSynchronize(stop_event_s));
+
+        gpuAssert(cudaEventRecord(start_event_m));
+        gpuAssert(multiGPU::MMM< funcType, TILE >(A,B,C_multi, HEIGHT_A, WIDTH_B, HEIGHT_B));
+        gpuAssert(cudaEventRecord(stop_event_m));
+        gpuAssert(cudaEventSynchronize(stop_event_m));
+
+        float ms_s = 0;
+        float ms_m = 0;
+        gpuAssert(cudaEventElapsedTime(&ms_s, start_event_s, stop_event_s));
+        gpuAssert(cudaEventElapsedTime(&ms_m, start_event_m, stop_event_m));
+        output << ms_s << ", " << ms_m << "\n";
+
+        gpuAssert(cudaEventDestroy(start_event_s));
+        gpuAssert(cudaEventDestroy(stop_event_s));
+        gpuAssert(cudaEventDestroy(start_event_m));
+        gpuAssert(cudaEventDestroy(stop_event_m));
     }
 
     cudaFree(A);

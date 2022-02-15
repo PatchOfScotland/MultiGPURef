@@ -11,7 +11,7 @@ __global__ void init_arr_kernel(T* data, unsigned long seed, size_t N){
     if (idx < N){
       curandState state;
       curand_init(seed, idx, 0, &state);
-      data[idx] = (T)curand(&state);
+      data[idx] = (T)(curand(&state));
     }
 }
 
@@ -26,7 +26,6 @@ __global__ void init_arr_kernel_iota(T* data, unsigned long seed, size_t N){
 template<class T>
 cudaError_t init_arr(T* data, unsigned long seed, size_t N){
     int num_blocks = (N + BLOCKSIZE - 1 ) / BLOCKSIZE;
-    std::cout << num_blocks << "\n";
     init_arr_kernel<T><<<num_blocks, BLOCKSIZE>>>(data, seed, N);
     return cudaGetLastError();
 }
@@ -62,4 +61,19 @@ void printArray(char filename[], T* A, size_t N){
     stream << "]\n";
     stream.close();
 }
+
+template<class T>
+void printMatrix(char filename[], T* A, size_t H, size_t W){
+    std::ofstream stream;
+    stream.open(filename);
+    for(size_t i = 0; i < H; i++){
+        for (size_t j = 0; j < W; j++)
+            (j == W-1) ? stream << A[i*H + j] : stream << A[i*H + j] << ", ";
+        stream << "\n";
+    }
+    stream.close();
+}   
+
+
+
 #endif
