@@ -1,4 +1,5 @@
 #include <iostream>
+#include <chrono>
 #include <fstream>
 #include "constants.cu.h"
 #include "helpers.cu.h"
@@ -61,34 +62,41 @@ int main(int argc, char* argv[]){
 
     for(int run = 0; run < ITERATIONS; run++){
 
-        cudaEvent_t start_event_m, stop_event_m;
-        cudaEvent_t start_event_s, stop_event_s;
 
-        gpuAssert(cudaEventCreate(&start_event_s));
-        gpuAssert(cudaEventCreate(&stop_event_s));
-        gpuAssert(cudaEventCreate(&start_event_m));
-        gpuAssert(cudaEventCreate(&stop_event_m));
+        //cudaEvent_t start_event_m, stop_event_m;
+        //cudaEvent_t start_event_s, stop_event_s;
 
-        gpuAssert(cudaEventRecord(start_event_s));
+        //gpuAssert(cudaEventCreate(&start_event_s));
+        //gpuAssert(cudaEventCreate(&stop_event_s));
+        //gpuAssert(cudaEventCreate(&start_event_m));
+        //gpuAssert(cudaEventCreate(&stop_event_m));
+
+        //gpuAssert(cudaEventRecord(start_event_s));
+        auto start_single = std::chrono::high_resolution_clock::now();
         gpuAssert(singleGPU::MMM< funcType, TILE >(A,B,C_single, HEIGHT_A, WIDTH_B, HEIGHT_B));
-        gpuAssert(cudaEventRecord(stop_event_s));
-        gpuAssert(cudaEventSynchronize(stop_event_s));
+        cudaDeviceSynchronize();
+        auto stop_single = std::chrono::high_resolution_clock::now();
+        //gpuAssert(cudaEventRecord(stop_event_s));
+        //gpuAssert(cudaEventSynchronize(stop_event_s));
 
-        gpuAssert(cudaEventRecord(start_event_m));
+        //gpuAssert(cudaEventRecord(start_event_m));
+        auto start_multi = std::chrono::high_resolution_clock::now();
         gpuAssert(multiGPU::MMM< funcType, TILE >(A,B,C_multi, HEIGHT_A, WIDTH_B, HEIGHT_B));
-        gpuAssert(cudaEventRecord(stop_event_m));
-        gpuAssert(cudaEventSynchronize(stop_event_m));
+        cudaDeviceSynchronize();
+        auto stop_multi = std::chrono::high_resolution_clock::now();
+        //gpuAssert(cudaEventRecord(stop_event_m));
+        //gpuAssert(cudaEventSynchronize(stop_event_m));
 
-        float ms_s = 0;
-        float ms_m = 0;
-        gpuAssert(cudaEventElapsedTime(&ms_s, start_event_s, stop_event_s));
-        gpuAssert(cudaEventElapsedTime(&ms_m, start_event_m, stop_event_m));
-        output << ms_s << ", " << ms_m << "\n";
+        auto ms_s = std::chrono::duration_cast<std::chrono::microseconds>(stop_single - start_single);
+        auto ms_m = std::chrono::duration_cast<std::chrono::microseconds>(stop_multi - start_multi);
+        //gpuAssert(cudaEventElapsedTime(&ms_s, start_event_s, stop_event_s));
+        //gpuAssert(cudaEventElapsedTime(&ms_m, start_event_m, stop_event_m));
+        output << ms_s.count() << ", " << ms_m.count() << "\n";
 
-        gpuAssert(cudaEventDestroy(start_event_s));
-        gpuAssert(cudaEventDestroy(stop_event_s));
-        gpuAssert(cudaEventDestroy(start_event_m));
-        gpuAssert(cudaEventDestroy(stop_event_m));
+        //gpuAssert(cudaEventDestroy(start_event_s));
+        //gpuAssert(cudaEventDestroy(stop_event_s));
+        //gpuAssert(cudaEventDestroy(start_event_m));
+        //gpuAssert(cudaEventDestroy(stop_event_m));
     }
 
     cudaFree(A);
