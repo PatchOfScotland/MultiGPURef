@@ -8,7 +8,7 @@
 
 #define ARRAY_SIZE 1e9
 #define LOGGING 0
-#define ENABLEPEERACCESS 1
+#define ENABLEPEERACCESS 0
 
 typedef float funcType;
 
