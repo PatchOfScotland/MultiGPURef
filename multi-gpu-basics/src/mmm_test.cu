@@ -32,6 +32,10 @@ int main(int argc, char* argv[]){
     size_t B_length = HEIGHT_B * WIDTH_B;
     size_t C_length = HEIGHT_A * WIDTH_B;
 
+    #if ENABLEPEERACCESS
+    EnablePeerAccess();
+    #endif
+
 
     funcType* A;
     funcType* B;

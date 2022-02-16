@@ -43,5 +43,24 @@ void LogHardware(char* filename){
     }
 }
 
+void EnablePeerAccess(){
+  int DeviceCount;
+  cudaGetDeviceCount(&DeviceCount);
+  for(int i = 0; i < DeviceCount; i++){
+    cudaSetDevice(i);
+    for(int j = 0; j < DeviceCount; j++){
+      if(i == j){
+        continue;
+      } else {
+        int canAccess = 0;
+        if(cudaDeviceCanAccessPeer(&canAccess, i, j)){
+          cudaDeviceEnablePeerAccess(j,0);
+        }
+      }
+    }
+  cudaSetDevice(0);
+  }
+}
+
 
 #endif
