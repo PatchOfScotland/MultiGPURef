@@ -6,9 +6,9 @@
 #include "map.cu"
 
 
-#define ARRAY_SIZE 1e6
-
+#define ARRAY_SIZE 1e9
 #define LOGGING 0
+#define ENABLEPEERACCESS 1
 
 typedef float funcType;
 

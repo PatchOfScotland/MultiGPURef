@@ -11,6 +11,8 @@
 
 #define TILE 16
 
+#define ENABLEPEERACCESS 1
+
 typedef float funcType;
 
 
