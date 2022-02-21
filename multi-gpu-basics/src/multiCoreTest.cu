@@ -47,7 +47,7 @@ int main(int argc, char* argv[]){
     gpuAssert(cudaMallocManaged(&A,        A_length*sizeof(funcType)));
     gpuAssert(cudaMallocManaged(&B,        B_length*sizeof(funcType)));
     gpuAssert(cudaMallocManaged(&C_multi,  C_length*sizeof (funcType)));
-    
+    // may make this multicore?    
     gpuAssert(init_arr< funcType >(A, 1337, A_length));
     gpuAssert(init_arr< funcType >(B, 420, B_length));
     cudaDeviceSynchronize();
@@ -71,5 +71,4 @@ int main(int argc, char* argv[]){
     cudaFree(A);
     cudaFree(B);
     cudaFree(C_multi);
-
 }
