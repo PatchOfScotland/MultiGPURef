@@ -8,5 +8,5 @@
 nvcc src/multiCoreTest.cu -o multiCoreTest -std=c++11 -O3
 nvcc src/multiCoreTestCudaTiming.cu -o multiCoreTestCudaTiming -std=c++11 -O3
 
-./multiCoreTest multiCoreBench.csv
-./multiCoreTestCudaTiming multiCoreBenchCudaTiming.csv
+./multiCoreTest data/multiCoreBench.csv
+./multiCoreTestCudaTiming data/multiCoreBenchCudaTiming.csv
