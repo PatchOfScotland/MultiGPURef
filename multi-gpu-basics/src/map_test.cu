@@ -6,9 +6,9 @@
 #include "map.cu"
 
 
-#define ARRAY_SIZE 1e9
+#define ARRAY_SIZE 2e8
 #define LOGGING 0
-#define ENABLEPEERACCESS 0
+#define ENABLEPEERACCESS 1
 
 typedef float funcType;
 
@@ -68,6 +68,7 @@ int main(int argc, char* argv[]){
 
     singleGPU::ApplyMap< MapBasic<funcType> >(d_in, d_out_singleGPU, N);
     multiGPU::ApplyMap< MapBasic<funcType> >(d_in, d_out_multiGPU, N);
+    cudaDeviceSynchronize();
 
     if (!compare_arrays_nummeric<funcType>(d_out_singleGPU, d_out_multiGPU, N)){
         output << "INVALID RESULTS!";

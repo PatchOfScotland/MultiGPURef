@@ -11,7 +11,7 @@ __global__ void init_arr_kernel(T* data, unsigned long seed, size_t N){
     if (idx < N){
       curandState state;
       curand_init(seed, idx, 0, &state);
-      data[idx] = (T)(curand(&state));
+      data[idx] = (T)((curand(&state)) & 0xF); // Numeric instability 
     }
 }
 
@@ -22,6 +22,32 @@ __global__ void init_arr_kernel_iota(T* data, unsigned long seed, size_t N){
       data[idx] = (T)idx;
     }
 }
+
+void LogHardware(char filename[]){
+    int deviceCount;
+    cudaGetDeviceCount(&deviceCount);
+    std::cout << "Number of devices: " << deviceCount << "\n";
+    for (int i = 0; i < deviceCount; i++){
+        cudaDeviceProp properties;
+        cudaGetDeviceProperties(&properties, i);
+        std::cout << "Device " << i << " name: " << properties.name << "\n";
+        std::cout << "Device can use Unified Memory:" << properties.unifiedAddressing << "\n";
+    }
+    for (int i = 0; i < deviceCount; i++){
+        for(int j = 0; j < deviceCount; j++){
+            if (i==j) continue;
+            int canAccessPeer = 0;
+            cudaDeviceCanAccessPeer(&canAccessPeer, i,j);
+            if (canAccessPeer){
+                std::cout << "Device "<< i << " can access Device " << j << "\n";
+            } else {
+                std::cout << "Device "<< i << " cannot access Device " << j << "\n";
+            }
+        }
+    }
+}
+
+
 
 template<class T>
 cudaError_t init_arr(T* data, unsigned long seed, size_t N){
@@ -52,28 +78,64 @@ bool compare_arrays_nummeric(T* arr1, T* arr2, size_t N){
 
 template<class T>
 void printArray(char filename[], T* A, size_t N){
-    std::ofstream stream;
-    stream.open(filename);
-    stream << "[ ";
+    std::cout << "[ ";
     for(size_t i = 0; i < N; i++){
-        (i == N-1) ? stream << A[i] : stream << A[i] << ", ";
+        (i == N-1) ? std::cout << A[i] : std::cout << A[i] << ", ";
     }
-    stream << "]\n";
-    stream.close();
+    std::cout << "]\n";
 }
 
 template<class T>
-void printMatrix(char filename[], T* A, size_t H, size_t W){
-    std::ofstream stream;
-    stream.open(filename);
+void printMatrix(T* A, size_t H, size_t W){
     for(size_t i = 0; i < H; i++){
         for (size_t j = 0; j < W; j++)
-            (j == W-1) ? stream << A[i*H + j] : stream << A[i*H + j] << ", ";
-        stream << "\n";
+            (j == W-1) ? std::cout << A[i*H + j] : std::cout << A[i*H + j] << ", ";
+        std::cout << "\n";
     }
-    stream.close();
 }   
 
+namespace multiGPU {
 
+    template<class ElTp, int T>
+    __global__ void iotaMatrixMultiDevice(ElTp* data, int height, int width, int devID){
+        int const tidx = threadIdx.x;
+        int const tidy = threadIdx.y;
+        int const bidx = blockIdx.x;
+        int const bidy = blockIdx.y;
+        int const jjj = bidx * T * T;
+        int const jj  = jjj + tidy * T;
+        int const j   = jj + tidx;
+        int const ii =  gridDim.y * T * devID + bidy * T;
+
+        for(int i = 0; i < T; i++){
+            if ((ii + i) < height && j < width)  {
+                data[(i + ii) * width + j] = (ElTp) (ii + i) * width + j;
+            }
+        }
+    }
+
+
+    template<class ElTp, int T>
+    cudaError_t iotaMatrix_emulate(ElTp* data, int height, int width, int emulatedDevices){
+        dim3 block(T,T,1);
+
+        int grid_x_total = ceil((float)width / (T * T));
+        int grid_y_total = ceil((float)height / (T)); 
+
+        int grid_x = grid_x_total; // Keep this the same value and divide over the Y's
+        int grid_y = (grid_y_total + emulatedDevices - 1) / emulatedDevices; // Same trick to get matching blocksizes
+
+        dim3 grid(grid_x, grid_y, 1);
+
+
+        for(int i = 0; i < emulatedDevices; i++){
+            iotaMatrixMultiDevice< ElTp, T ><<<grid,block>>>(data, height, width, i); 
+        }
+
+
+        return cudaPeekAtLastError();
+    }
+
+}
 
 #endif

@@ -13,7 +13,7 @@
 
 #define ENABLEPEERACCESS 1
 
-typedef float funcType;
+typedef int funcType;
 
 
 int main(int argc, char* argv[]){
@@ -43,27 +43,49 @@ int main(int argc, char* argv[]){
     funcType* B;
     funcType* C_single;
     funcType* C_multi;
+    funcType* C_trivial;
 
 
     gpuAssert(cudaMallocManaged(&A,        A_length*sizeof(funcType)));
     gpuAssert(cudaMallocManaged(&B,        B_length*sizeof(funcType)));
     gpuAssert(cudaMallocManaged(&C_single, C_length*sizeof(funcType)));
     gpuAssert(cudaMallocManaged(&C_multi,  C_length*sizeof (funcType)));
+    gpuAssert(cudaMallocManaged(&C_trivial,  C_length*sizeof (funcType)));
 
     gpuAssert(init_arr< funcType >(A, 1337, A_length));
     gpuAssert(init_arr< funcType >(B, 420, B_length));
     cudaDeviceSynchronize();
 
     gpuAssert(singleGPU::MMM< funcType, TILE >(A,B,C_single, HEIGHT_A, WIDTH_B, HEIGHT_B));
-    gpuAssert(multiGPU::MMM< funcType, TILE >(A,B,C_multi, HEIGHT_A, WIDTH_B, HEIGHT_B));
+    gpuAssert(multiGPU::MMM_trivial_emulated< funcType, TILE >(A,B,C_trivial,HEIGHT_A, WIDTH_B, HEIGHT_B, 3));
+    gpuAssert(multiGPU::MMM_emulated< funcType, TILE >(A, B,C_multi, HEIGHT_A, WIDTH_B, HEIGHT_B,3));
+
     cudaDeviceSynchronize();
+
+    if(compare_arrays<funcType>(C_single, C_trivial, C_length)){
+        std::cout << "Trivial is correct\n";
+    } else {
+        std::cout << "Trivial is incorrect\n";
+        printMatrix<funcType>(A, HEIGHT_A, HEIGHT_B);
+        std::cout << "\n";
+        printMatrix<funcType>(B, HEIGHT_B, WIDTH_B);
+        std::cout << "\n";
+        printMatrix<funcType>(C_trivial, HEIGHT_A, WIDTH_B);
+        std::cout << "\n";
+        printMatrix<funcType>(C_single, HEIGHT_A, WIDTH_B);
+        std::cout << "\n";
+    }
 
     
     if(compare_arrays< funcType >(C_single, C_multi, C_length)){
-        output << "Valid output\n";
-        
+        std::cout << "Valid output\n";
     } else {
-        output << "Invalid Result \n";
+        std::cout << "Invalid Result \n";
+        for(int i = 0; i < C_length; i++){
+            if (abs(C_single[i] - C_multi[i]) > EPSILON){
+                //std::cout << C_single[i] << " " << C_multi[i] << " " << i << "\n";
+            }
+        }
     }
 
     for(int run = 0; run < ITERATIONS; run++){
