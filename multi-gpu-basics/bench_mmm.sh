@@ -5,8 +5,6 @@
 #SBATCH --mem=10000m
 #SBATCH -p gpu --gres=gpu:gtx1080:3
 
-nvcc src/multiCoreTest.cu -o multiCoreTest -std=c++11 -O3
-nvcc src/multiCoreTestCudaTiming.cu -o multiCoreTestCudaTiming -std=c++11 -O3
+nvcc src/multiCoreTestCudaTiming.cu -o build/multiCoreTestCudaTiming -std=c++11 -O3
 
-./multiCoreTest data/multiCoreBench.csv
-./multiCoreTestCudaTiming data/multiCoreBenchCudaTiming.csv
+./build/multiCoreTestCudaTiming data/multiCoreBenchCudaTiming.csv

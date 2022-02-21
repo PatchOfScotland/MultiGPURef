@@ -5,9 +5,9 @@
 #include "helpers.cu.h"
 #include "mmm.cu"
 
-#define HEIGHT_A 2048
-#define HEIGHT_B 2048  // Given that HEIGHT_B = WIDTH_A
-#define WIDTH_B  2048
+#define HEIGHT_A 8192
+#define HEIGHT_B 8192  // Given that HEIGHT_B = WIDTH_A
+#define WIDTH_B  8192
 
 #define TILE 16
 
@@ -53,13 +53,19 @@ int main(int argc, char* argv[]){
     cudaDeviceSynchronize();
 
     for(int run = 0; run < ITERATIONS; run++){
-        auto start_multi = std::chrono::high_resolution_clock::now();
-        gpuAssert(multiGPU::MMM< funcType, TILE >(A,B,C_multi, HEIGHT_A, WIDTH_B, HEIGHT_B));
-        cudaDeviceSynchronize();
-        auto stop_multi = std::chrono::high_resolution_clock::now();
+        cudaEvent_t start_event, stop_event;
 
-        auto ms_m = std::chrono::duration_cast<std::chrono::milliseconds>(stop_multi - start_multi);
-        output << ms_m.count() << "\n";
+        gpuAssert(cudaEventCreate(&start_event));
+        gpuAssert(cudaEventCreate(&stop_event));
+
+        gpuAssert(cudaEventRecord(start_event));
+        gpuAssert(multiGPU::MMM< funcType, TILE >(A,B,C_multi, HEIGHT_A, WIDTH_B, HEIGHT_B));
+        gpuAssert(cudaEventRecord(stop_event));
+        gpuAssert(cudaEventSynchronize(stop_event));
+
+        float ms;
+        gpuAssert(cudaEventElapsedTime(&ms, start_event, stop_event));
+        if(run != 0) output << ms << "\n";
     }
 
     cudaFree(A);
