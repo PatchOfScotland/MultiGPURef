@@ -77,7 +77,7 @@ bool compare_arrays_nummeric(T* arr1, T* arr2, size_t N){
 }
 
 template<class T>
-void printArray(char filename[], T* A, size_t N){
+void printArray(T* A, size_t N){
     std::cout << "[ ";
     for(size_t i = 0; i < N; i++){
         (i == N-1) ? std::cout << A[i] : std::cout << A[i] << ", ";

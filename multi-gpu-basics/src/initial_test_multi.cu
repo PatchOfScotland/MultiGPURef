@@ -3,7 +3,7 @@
 #include "constants.cu.h"
 #include "helpers.cu.h"
 
-#define N 1e6
+#define N 1e3
 
 
 #define ENABLEPEERACCESS 1
@@ -52,6 +52,8 @@ int main(int argc, char* argv[]){
 
         CUDA_RT_CALL(cudaEventDestroy(start));
         CUDA_RT_CALL(cudaEventDestroy(stop));
+
+        printArray< funcType >(A, N);
 
         cudaFree(A);
     }
