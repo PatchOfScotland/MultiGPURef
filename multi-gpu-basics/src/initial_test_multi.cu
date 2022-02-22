@@ -57,8 +57,6 @@ int main(int argc, char* argv[]){
         CUDA_RT_CALL(cudaEventDestroy(stop));
 
         cudaFree(A);
-        cudaDeviceReset();
-
     }
     
     // may make this multicore?    
