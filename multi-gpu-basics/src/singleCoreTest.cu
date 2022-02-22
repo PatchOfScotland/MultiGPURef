@@ -38,7 +38,7 @@ int main(int argc, char* argv[]){
     EnablePeerAccess();
     #endif
 
-
+    cudaError_t e;
     funcType* A;
     funcType* B;
     funcType* C_multi;
@@ -48,8 +48,12 @@ int main(int argc, char* argv[]){
     CUDA_RT_CALL(cudaMallocManaged(&B,        B_length*sizeof(funcType)));
     CUDA_RT_CALL(cudaMallocManaged(&C_multi,  C_length*sizeof (funcType)));
     // may make this multicore?    
-    CUDA_RT_CALL(init_arr< funcType >(A, 1337, A_length));
-    CUDA_RT_CALL(init_arr< funcType >(B, 420, B_length));
+    
+    e = multiGPU::init_arr< funcType >(A, 1337, A_length);
+    CUDA_RT_CALL(e);
+
+    e = multiGPU::init_arr< funcType >(B, 420, B_length);
+    CUDA_RT_CALL(e);
     cudaDeviceSynchronize();
 
     for(int run = 0; run < ITERATIONS; run++){
@@ -59,7 +63,7 @@ int main(int argc, char* argv[]){
         CUDA_RT_CALL(cudaEventCreate(&stop_event));
 
         CUDA_RT_CALL(cudaEventRecord(start_event));
-        cudaError e = singleGPU::MMM< funcType, TILE >(A,B,C_multi, HEIGHT_A, WIDTH_B, HEIGHT_B);
+        e = singleGPU::MMM< funcType, TILE >(A,B,C_multi, HEIGHT_A, WIDTH_B, HEIGHT_B);
         CUDA_RT_CALL(e);
         CUDA_RT_CALL(cudaEventRecord(stop_event));
         CUDA_RT_CALL(cudaEventSynchronize(stop_event));

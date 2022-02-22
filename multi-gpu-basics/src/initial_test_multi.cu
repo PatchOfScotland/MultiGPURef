@@ -41,12 +41,9 @@ int main(int argc, char* argv[]){
         CUDA_RT_CALL(cudaEventRecord(start));
         CUDA_RT_CALL(cudaMallocManaged(&A, N*sizeof(funcType)));
 
-        CUDA_RT_CALL(cudaMemAdvise(A, N*sizeof(funcType), cudaMemAdviseSetPreferredLocation, Device));
-        CUDA_RT_CALL(cudaMemAdvise(A, N*sizeof(funcType), cudaMemAdviseSetAccessedBy, Device));
-        CUDA_RT_CALL(cudaMemPrefetchAsync(A, N*sizeof(funcType), Device));
-
         cudaError_t e = multiGPU::init_arr< funcType >(A, 1337, N);
         CUDA_RT_CALL(e);
+        cudaSetDevice(Device);
         CUDA_RT_CALL(cudaEventRecord(stop));
         CUDA_RT_CALL(cudaEventSynchronize(stop));
 
