@@ -44,27 +44,27 @@ int main(int argc, char* argv[]){
     funcType* C_multi;
 
 
-    gpuAssert(cudaMallocManaged(&A,        A_length*sizeof(funcType)));
-    gpuAssert(cudaMallocManaged(&B,        B_length*sizeof(funcType)));
-    gpuAssert(cudaMallocManaged(&C_multi,  C_length*sizeof (funcType)));
+    CUDA_RT_CALL(cudaMallocManaged(&A,        A_length*sizeof(funcType)));
+    CUDA_RT_CALL(cudaMallocManaged(&B,        B_length*sizeof(funcType)));
+    CUDA_RT_CALL(cudaMallocManaged(&C_multi,  C_length*sizeof (funcType)));
     // may make this multicore?    
-    gpuAssert(init_arr< funcType >(A, 1337, A_length));
-    gpuAssert(init_arr< funcType >(B, 420, B_length));
+    CUDA_RT_CALL(init_arr< funcType >(A, 1337, A_length));
+    CUDA_RT_CALL(init_arr< funcType >(B, 420, B_length));
     cudaDeviceSynchronize();
 
     for(int run = 0; run < ITERATIONS; run++){
         cudaEvent_t start_event, stop_event;
 
-        gpuAssert(cudaEventCreate(&start_event));
-        gpuAssert(cudaEventCreate(&stop_event));
+        CUDA_RT_CALL(cudaEventCreate(&start_event));
+        CUDA_RT_CALL(cudaEventCreate(&stop_event));
 
-        gpuAssert(cudaEventRecord(start_event));
-        gpuAssert(multiGPU::MMM< funcType, TILE >(A,B,C_multi, HEIGHT_A, WIDTH_B, HEIGHT_B));
-        gpuAssert(cudaEventRecord(stop_event));
-        gpuAssert(cudaEventSynchronize(stop_event));
+        CUDA_RT_CALL(cudaEventRecord(start_event));
+        CUDA_RT_CALL(multiGPU::MMM< funcType, TILE >(A,B,C_multi, HEIGHT_A, WIDTH_B, HEIGHT_B));
+        CUDA_RT_CALL(cudaEventRecord(stop_event));
+        CUDA_RT_CALL(cudaEventSynchronize(stop_event));
 
         float ms;
-        gpuAssert(cudaEventElapsedTime(&ms, start_event, stop_event));
+        CUDA_RT_CALL(cudaEventElapsedTime(&ms, start_event, stop_event));
         if(run != 0) output << ms << "\n";
     }
 

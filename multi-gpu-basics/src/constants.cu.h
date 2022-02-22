@@ -9,11 +9,30 @@
 #include <stdlib.h>
 #include <iostream>
 
-int gpuAssert(cudaError_t code) {
+#define CUDA_RT_CALL(call)                                                                  \
+    {                                                                                       \
+        cudaError_t cudaStatus = call;                                                      \
+        if (cudaSuccess != cudaStatus) {                                                    \
+            fprintf(stderr,                                                                 \
+                    "ERROR: CUDA RT call \"%s\" in line %d of file %s failed "              \
+                    "with "                                                                 \
+                    "%s (%d).\n",                                                           \
+                    #call, __LINE__, __FILE__, cudaGetErrorString(cudaStatus), cudaStatus); \
+            exit(cudaStatus);                                                               \
+        }                                                                                   \
+    }
+
+
+int gpuaAssert(cudaError_t code) {
   if (code != cudaSuccess) {
-    fprintf(stderr, "GPU Error: %s\n", cudaGetErrorString(code));
-    return -1;
-  }
+    
+            fprintf(stderr,                                                                 \
+                    "ERROR: CUDA RT call in line %d of file %s failed "              \
+                    "with "                                                                 \
+                    "%s (%d).\n",                                                           \
+                  __LINE__, __FILE__, cudaGetErrorString(code), code); \
+            return( code );                                                             \
+    } 
   return 0;
 }
 

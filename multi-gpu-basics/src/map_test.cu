@@ -59,11 +59,11 @@ int main(int argc, char* argv[]){
     funcType* d_out_multiGPU;
     funcType* d_out_singleGPU;
 
-    gpuAssert(cudaMallocManaged((void**)&d_in, data_size));
-    gpuAssert(cudaMallocManaged((void**)&d_out_singleGPU, data_size));
-    gpuAssert(cudaMallocManaged((void**)&d_out_multiGPU, data_size));
+    CUDA_RT_CALL(cudaMallocManaged((void**)&d_in, data_size));
+    CUDA_RT_CALL(cudaMallocManaged((void**)&d_out_singleGPU, data_size));
+    CUDA_RT_CALL(cudaMallocManaged((void**)&d_out_multiGPU, data_size));
 
-    gpuAssert(init_arr< funcType >(d_in, 1337, N));
+    CUDA_RT_CALL(init_arr< funcType >(d_in, 1337, N));
 
 
     singleGPU::ApplyMap< MapBasic<funcType> >(d_in, d_out_singleGPU, N);
@@ -76,12 +76,12 @@ int main(int argc, char* argv[]){
         for(int i = 0; i < ITERATIONS; i++ ){
 
             auto start_single = std::chrono::high_resolution_clock::now();
-            gpuAssert(singleGPU::ApplyMap< MapBasic<funcType> >(d_in, d_out_singleGPU, N));
+            CUDA_RT_CALL(singleGPU::ApplyMap< MapBasic<funcType> >(d_in, d_out_singleGPU, N));
             cudaDeviceSynchronize();
             auto stop_single = std::chrono::high_resolution_clock::now();
         
             auto start_multi = std::chrono::high_resolution_clock::now();
-            gpuAssert(multiGPU::ApplyMap< MapBasic<funcType> >(d_in, d_out_multiGPU, N));
+            CUDA_RT_CALL(multiGPU::ApplyMap< MapBasic<funcType> >(d_in, d_out_multiGPU, N));
             cudaDeviceSynchronize();
             auto stop_multi = std::chrono::high_resolution_clock::now();
         
