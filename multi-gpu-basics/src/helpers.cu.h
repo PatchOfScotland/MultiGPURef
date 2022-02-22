@@ -159,12 +159,9 @@ namespace multiGPU {
             cudaSetDevice(devID);
             RandomInitiation< T ><<< num_blocks, BLOCKSIZE >>>(data, seed, N, devID);
         }
-        cudaSetDevice(0);
 
         return cudaGetLastError();
     }
-
-
 }
 
 
