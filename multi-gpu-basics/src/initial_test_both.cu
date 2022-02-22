@@ -38,6 +38,7 @@ int main(int argc, char* argv[]){
         CUDA_RT_CALL(cudaEventCreate(&start));
         CUDA_RT_CALL(cudaEventCreate(&stop));
 
+        CUDA_RT_CALL(cudaEventRecord(start));
         CUDA_RT_CALL(cudaMallocManaged(&A, N*sizeof(funcType)));
 
         CUDA_RT_CALL(cudaMemset(A, 0, N*sizeof(funcType)));
@@ -45,7 +46,6 @@ int main(int argc, char* argv[]){
         CUDA_RT_CALL(cudaMemAdvise(A, N*sizeof(funcType), cudaMemAdviseSetAccessedBy, Device));
         CUDA_RT_CALL(cudaMemPrefetchAsync(A, N*sizeof(funcType), Device));
 
-        CUDA_RT_CALL(cudaEventRecord(start));
         CUDA_RT_CALL(init_arr< funcType >(A, 1337, N));
         CUDA_RT_CALL(cudaEventRecord(stop));
         CUDA_RT_CALL(cudaEventSynchronize(stop));
