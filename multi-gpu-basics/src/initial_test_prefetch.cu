@@ -3,8 +3,7 @@
 #include "constants.cu.h"
 #include "helpers.cu.h"
 
-#define N 1e6
-
+#define N 1e7
 
 #define ENABLEPEERACCESS 1
 

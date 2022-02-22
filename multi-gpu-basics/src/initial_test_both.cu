@@ -3,7 +3,7 @@
 #include "constants.cu.h"
 #include "helpers.cu.h"
 
-#define N 1e6
+#define N 1e7
 
 
 #define ENABLEPEERACCESS 1
@@ -41,7 +41,6 @@ int main(int argc, char* argv[]){
         CUDA_RT_CALL(cudaEventRecord(start));
         CUDA_RT_CALL(cudaMallocManaged(&A, N*sizeof(funcType)));
 
-        CUDA_RT_CALL(cudaMemset(A, 0, N*sizeof(funcType)));
         CUDA_RT_CALL(cudaMemAdvise(A, N*sizeof(funcType), cudaMemAdviseSetPreferredLocation, Device));
         CUDA_RT_CALL(cudaMemAdvise(A, N*sizeof(funcType), cudaMemAdviseSetAccessedBy, Device));
         CUDA_RT_CALL(cudaMemPrefetchAsync(A, N*sizeof(funcType), Device));
