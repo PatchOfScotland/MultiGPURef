@@ -223,17 +223,10 @@ namespace multiGPU {
             int emulatedDevices
         ) {
         dim3 block(T, T, 1);
-        //std::cout << A_height << ", " << B_width << ", " << B_height << ", " << T <<  "\n";
-
         int grid_x_total = ceil((float)B_width / (T * T));
         int grid_y_total = ceil((float)A_height / (T)); 
-
-//        std::cout << grid_x_total << ", " << grid_y_total << "\n";
-        
         int grid_x = grid_x_total; // Keep this the same value and divide over the Y's
         int grid_y = (grid_y_total + emulatedDevices - 1) / emulatedDevices; // Same trick to get matching blocksizes
-
-//        std::cout << grid_x << ", " << grid_y << "\n";
 
         dim3 grid(grid_x, grid_y, 1);
 

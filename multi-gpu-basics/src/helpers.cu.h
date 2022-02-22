@@ -152,12 +152,10 @@ namespace multiGPU {
         int Devices = -1;
         cudaGetDeviceCount(&Devices);
         
-        size_t allocated_per_device = N / DeviceNum + 1; 
+        size_t allocated_per_device = N / Devices + 1; 
         size_t num_blocks           = (allocated_per_device + BLOCKSIZE - 1 ) / BLOCKSIZE;
-    
 
-
-        for(int devID = 0, devID < Devices; devID++){
+        for(int devID = 0; devID < Devices; devID++){
             cudaSetDevice(devID);
             RandomInitiation< T ><<< num_blocks, BLOCKSIZE >>>(data, seed, N, devID);
         }
