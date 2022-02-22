@@ -5,9 +5,9 @@
 #include "helpers.cu.h"
 #include "mmm.cu"
 
-#define HEIGHT_A 8192
-#define HEIGHT_B 8192  // Given that HEIGHT_B = WIDTH_A
-#define WIDTH_B  8192
+#define HEIGHT_A 1024   
+#define HEIGHT_B 1024  // Given that HEIGHT_B = WIDTH_A
+#define WIDTH_B  1024
 
 #define TILE 16
 
@@ -59,7 +59,8 @@ int main(int argc, char* argv[]){
         CUDA_RT_CALL(cudaEventCreate(&stop_event));
 
         CUDA_RT_CALL(cudaEventRecord(start_event));
-        CUDA_RT_CALL(multiGPU::MMM< funcType, TILE >(A,B,C_multi, HEIGHT_A, WIDTH_B, HEIGHT_B));
+        cudaError e = multiGPU::MMM< funcType, TILE >(A,B,C_multi, HEIGHT_A, WIDTH_B, HEIGHT_B);
+        CUDA_RT_CALL(e);
         CUDA_RT_CALL(cudaEventRecord(stop_event));
         CUDA_RT_CALL(cudaEventSynchronize(stop_event));
 

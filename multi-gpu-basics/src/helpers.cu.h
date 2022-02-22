@@ -136,6 +136,40 @@ namespace multiGPU {
         return cudaPeekAtLastError();
     }
 
+    template<class T>
+    __global__ void RandomInitiation(T* data, int seed, size_t N, int DevID){
+        int64_t idx = gridDim.x * blockDim.x * DevID + blockIdx.x * blockDim.x + threadIdx.x;
+        if (idx < N){
+            curandState state;
+            curand_init(seed, idx, 0, &state);
+            data[idx] = (T)((curand(&state)) & 0xF); // Numeric instability 
+        }
+    }
+
+
+    template<class T>
+    cudaError_t init_arr(T* data, unsigned long seed, size_t N){
+        int Devices = -1;
+        cudaGetDeviceCount(&Devices);
+        
+        size_t allocated_per_device = N / DeviceNum + 1; 
+        size_t num_blocks           = (allocated_per_device + BLOCKSIZE - 1 ) / BLOCKSIZE;
+    
+
+
+        for(int devID = 0, devID < Devices; devID++){
+            cudaSetDevice(devID);
+            RandomInitiation< T ><<< num_blocks, BLOCKSIZE >>>(data, seed, N, devID);
+        }
+        cudaSetDevice(0);
+
+        return cudaGetLastError();
+    }
+
+
 }
+
+
+
 
 #endif

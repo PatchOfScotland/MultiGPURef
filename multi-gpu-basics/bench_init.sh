@@ -10,11 +10,13 @@ nvcc src/initial_test_prefetch.cu -o build/initial_test_prefetch  -O3
 nvcc src/initial_test.cu -o build/initial_test -O3
 nvcc src/initial_test_both.cu -o build/initial_test_both -O3
 nvcc src/initial_test_standard.cu -o build/initial_test_standard -O3
+nvcc src/initial_test_multi.cu -o build/initial_test_multi -O3
 
 ./build/initial_test_both data/initial_test_both.csv
 ./build/initial_test_prefetch data/initial_test_prefetch.csv
 ./build/initial_test_advice data/initial_test_advice.csv
 ./build/initial_test data/initial_test.csv
 ./build/initial_test_standard data/initial_test_standard.csv
+./build/initial_test_multi data/initial_test_multi.csv
 
 echo "DONE!"
