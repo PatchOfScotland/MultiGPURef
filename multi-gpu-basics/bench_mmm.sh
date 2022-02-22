@@ -1,10 +1,13 @@
 #!/bin/bash
 #SBATCH --job-name=MultiGPUMap
 #SBATCH --ntasks=2
-#SBATCH --time=00:10:00
+#SBATCH --time=00:20:00
 #SBATCH --mem=10000m
 #SBATCH -p gpu --gres=gpu:gtx1080:3
 
-nvcc src/multiCoreTest.cu -o build/multiCoreTest -std=c++11 -O3
+nvcc src/mmm_bench_multi.cu -o build/mmm_bench_multi -std=c++11 -O3
+nvcc src/mmm_bench_single.cu -o build/mmm_bench_single -std=c++11 -O3
 
-./build/multiCoreTest data/multiCoreBench.csv
+./build/mmm_bench_multi data/mmm_bench_multi_3.csv
+./build/mmm_bench_single data/mmm_bench_single
+echo "DONE"
