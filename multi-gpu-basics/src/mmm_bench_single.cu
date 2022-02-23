@@ -1,5 +1,4 @@
 #include <iostream>
-#include <chrono>
 #include <fstream>
 #include "constants.cu.h"
 #include "helpers.cu.h"
