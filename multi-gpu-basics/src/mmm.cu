@@ -320,7 +320,7 @@ namespace multiGPU {
         //cudaStream_t deviceStream[DeviceCount];
 
         for(int devID = 0; devID < DeviceCount; devID++){
-            cudaStreamCreate(&deviceStream[devID]);
+            //cudaStreamCreate(&deviceStream[devID]);
             cudaMemAdvise(A, A_size, cudaMemAdviseSetReadMostly, devID);
             cudaMemAdvise(B, B_size, cudaMemAdviseSetReadMostly, devID);
             
