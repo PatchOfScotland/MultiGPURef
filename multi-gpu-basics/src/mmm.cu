@@ -200,6 +200,8 @@ namespace multiGPU {
         int DeviceCount;
         cudaGetDeviceCount(&DeviceCount);
 
+        int Device = -1;
+        cudaGetDevice(&Device);
 
         dim3 block(T, T, 1);
         int grid_x_total = ceil((float)B_width / (T * T));
@@ -214,6 +216,9 @@ namespace multiGPU {
             cudaSetDevice(dev_id);
             matMultRegTiledKernel< ElTp, T ><<<grid, block>>>(A,B,C, A_height, B_width, B_height, dev_id);
         }
+        
+        cudaSetDevice(Device);
+
         return cudaGetLastError();
     }
 
@@ -293,6 +298,8 @@ namespace multiGPU {
         int B_width, 
         int B_height
     ){
+        int Device = -1;
+        cudaGetDevice(&Device);
         int DeviceCount;
         cudaGetDeviceCount(&DeviceCount);
 
@@ -310,15 +317,15 @@ namespace multiGPU {
         size_t grid_byte_count = grid_x* grid_y * T * T * sizeof(ElTp);
         
         
-        cudaStream_t deviceStream[DeviceCount];
+        //cudaStream_t deviceStream[DeviceCount];
 
         for(int devID = 0; devID < DeviceCount; devID++){
             cudaStreamCreate(&deviceStream[devID]);
             cudaMemAdvise(A, A_size, cudaMemAdviseSetReadMostly, devID);
             cudaMemAdvise(B, B_size, cudaMemAdviseSetReadMostly, devID);
             
-            cudaMemPrefetchAsync(A, A_size, devID, deviceStream[devID]);
-            cudaMemPrefetchAsync(B, B_size, devID, deviceStream[devID]);
+            cudaMemPrefetchAsync(A, A_size, devID);
+            cudaMemPrefetchAsync(B, B_size, devID);
 
             size_t offset = devID * grid_byte_count;
             cudaMemAdvise(C + offset, grid_byte_count, cudaMemAdviseSetAccessedBy, devID);
@@ -331,13 +338,15 @@ namespace multiGPU {
 
         for(int devID = 0; devID < DeviceCount; devID++){
             cudaSetDevice(devID);
-            matMultRegTiledKernel< ElTp, T ><<<grid, block, 0, deviceStream[devID] >>>(A,B,C, A_height, B_width, B_height, devID);
+            matMultRegTiledKernel< ElTp, T ><<<grid, block >>>(A,B,C, A_height, B_width, B_height, devID);
 
         }
         
-        for(int devID = 0; devID < DeviceCount; devID++){
-            cudaStreamDestroy(deviceStream[devID]);
-        }
+        //for(int devID = 0; devID < DeviceCount; devID++){
+        //    cudaStreamDestroy(deviceStream[devID]);
+        //}
+
+        cudaSetDevice(Device);
 
         return cudaGetLastError();
     }
