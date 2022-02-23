@@ -5,9 +5,6 @@
 #include "helpers.cu.h"
 #include "mmm.cu"
 
-#define HEIGHT_A 1024   
-#define HEIGHT_B 1024  // Given that HEIGHT_B = WIDTH_A
-#define WIDTH_B  1024
 
 #define TILE 16
 

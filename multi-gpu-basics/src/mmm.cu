@@ -2,6 +2,12 @@
 #define MMM_H
 #include <iostream> // for debuggin
     
+#define HEIGHT_A 2048   
+#define HEIGHT_B 2048  // Given that HEIGHT_B = WIDTH_A
+#define WIDTH_B  2048
+
+
+
 namespace singleGPU {
 
     template <class ElTp, int T> 
@@ -290,8 +296,8 @@ namespace multiGPU {
         int DeviceCount;
         cudaGetDeviceCount(&DeviceCount);
 
-        //for(int devID = 0;)
-
+        size_t A_size = A_height * B_height * sizeof(ElTp);
+        size_t B_size = B_width  * B_height * sizeof(ElTp);
 
         dim3 block(T, T, 1);
         int grid_x_total = ceil((float)B_width / (T * T));
@@ -301,16 +307,38 @@ namespace multiGPU {
         int grid_y = (grid_y_total + DeviceCount - 1) / DeviceCount; // Same trick to get matching blocksizes
 
         dim3 grid(grid_x, grid_y, 1);
+        size_t grid_byte_count = grid_x* grid_y * T * T * sizeof(ElTp);
+        
+        
+        cudaStream_t deviceStream[DeviceCount];
 
+        for(int devID = 0; devID < DeviceCount; devID++){
+            cudaStreamCreate(&deviceStream[devID]);
+            cudaMemAdvise(A, A_size, cudaMemAdviseSetReadMostly, devID);
+            cudaMemAdvise(B, B_size, cudaMemAdviseSetReadMostly, devID);
+            
+            cudaMemPrefetchAsync(A, A_size, devID, deviceStream[devID]);
+            cudaMemPrefetchAsync(B, B_size, devID, deviceStream[devID]);
 
+            size_t offset = devID * grid_byte_count;
+            cudaMemAdvise(C + offset, grid_byte_count, cudaMemAdviseSetAccessedBy, devID);
+            cudaMemAdvise(C + offset, grid_byte_count, cudaMemAdviseSetPreferredLocation, devID);
+
+        }
+        
         //cudaMemAdvise()
 
 
-        for(int dev_id = 0; dev_id < DeviceCount; dev_id++){
-            cudaSetDevice(dev_id);
-            matMultRegTiledKernel< ElTp, T ><<<grid, block>>>(A,B,C, A_height, B_width, B_height, dev_id);
+        for(int devID = 0; devID < DeviceCount; devID++){
+            cudaSetDevice(devID);
+            matMultRegTiledKernel< ElTp, T ><<<grid, block, 0, deviceStream[devID] >>>(A,B,C, A_height, B_width, B_height, devID);
 
         }
+        
+        for(int devID = 0; devID < DeviceCount; devID++){
+            cudaStreamDestroy(deviceStream[devID]);
+        }
+
         return cudaGetLastError();
     }
 
