@@ -38,12 +38,14 @@ int main(int argc, char* argv[]){
     EnablePeerAccess();
     #endif
 
+    int Device = -1;
+    cudaGetDevice(&Device);
 
     funcType* A;
     funcType* B;
     funcType* C_multi;
 
-
+    
     CUDA_RT_CALL(cudaMallocManaged(&A,        A_length*sizeof(funcType)));
     CUDA_RT_CALL(cudaMallocManaged(&B,        B_length*sizeof(funcType)));
     CUDA_RT_CALL(cudaMallocManaged(&C_multi,  C_length*sizeof (funcType)));
@@ -61,6 +63,7 @@ int main(int argc, char* argv[]){
         CUDA_RT_CALL(cudaEventRecord(start_event));
         cudaError e = multiGPU::MMM< funcType, TILE >(A,B,C_multi, HEIGHT_A, WIDTH_B, HEIGHT_B);
         CUDA_RT_CALL(e);
+        cudaSetDevice(Device);
         CUDA_RT_CALL(cudaEventRecord(stop_event));
         CUDA_RT_CALL(cudaEventSynchronize(stop_event));
 

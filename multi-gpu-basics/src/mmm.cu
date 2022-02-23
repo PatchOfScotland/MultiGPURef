@@ -207,7 +207,6 @@ namespace multiGPU {
         for(int dev_id = 0; dev_id < DeviceCount; dev_id++){
             cudaSetDevice(dev_id);
             matMultRegTiledKernel< ElTp, T ><<<grid, block>>>(A,B,C, A_height, B_width, B_height, dev_id);
-
         }
         return cudaGetLastError();
     }
@@ -278,6 +277,43 @@ namespace multiGPU {
         }
         return cudaGetLastError();
     } 
+    
+    template< class ElTp, int T>
+    cudaError_t MMM_adviced_prefetch(
+        ElTp* A,
+        ElTp* B, 
+        ElTp* C, 
+        int A_height, 
+        int B_width, 
+        int B_height
+    ){
+        int DeviceCount;
+        cudaGetDeviceCount(&DeviceCount);
+
+        //for(int devID = 0;)
+
+
+        dim3 block(T, T, 1);
+        int grid_x_total = ceil((float)B_width / (T * T));
+        int grid_y_total = ceil((float)A_height / (T)); 
+        
+        int grid_x = grid_x_total; // Keep this the same value and divide over the Y's
+        int grid_y = (grid_y_total + DeviceCount - 1) / DeviceCount; // Same trick to get matching blocksizes
+
+        dim3 grid(grid_x, grid_y, 1);
+
+
+        //cudaMemAdvise()
+
+
+        for(int dev_id = 0; dev_id < DeviceCount; dev_id++){
+            cudaSetDevice(dev_id);
+            matMultRegTiledKernel< ElTp, T ><<<grid, block>>>(A,B,C, A_height, B_width, B_height, dev_id);
+
+        }
+        return cudaGetLastError();
+    }
+
 
 }
 
