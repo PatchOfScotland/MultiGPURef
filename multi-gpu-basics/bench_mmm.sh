@@ -1,6 +1,6 @@
 #!/bin/bash
 #SBATCH --job-name=MultiGPUMap
-#SBATCH --ntasks=2
+#SBATCH --ntasks=5
 #SBATCH --time=00:20:00
 #SBATCH --mem=10000m
 #SBATCH -p gpu --gres=gpu:gtx1080:3

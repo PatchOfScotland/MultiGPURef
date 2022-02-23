@@ -5,9 +5,9 @@
 #include "helpers.cu.h"
 #include "mmm.cu"
 
-#define HEIGHT_A 256    
-#define HEIGHT_B 256 // Given that HEIGHT_B = WIDTH_A
-#define WIDTH_B  256
+#define HEIGHT_A 1024    
+#define HEIGHT_B 1024 // Given that HEIGHT_B = WIDTH_A
+#define WIDTH_B  1024
 
 #define TILE 16
 
@@ -57,7 +57,7 @@ int main(int argc, char* argv[]){
     CUDA_RT_CALL(init_arr< funcType >(B, 420, B_length));
     cudaDeviceSynchronize();
 
-    e = singleGPU::MMM< funcType, TILE >(A,B,C_single, HEIGHT_A, WIDTH_B, HEIGHT_B);
+    e = singleGPU::MMM< funcType, TILE >(A, B, C_single, HEIGHT_A, WIDTH_B, HEIGHT_B);
     CUDA_RT_CALL(e);
     e = multiGPU::MMM_trivial_emulated< funcType, TILE >(A,B,C_trivial,HEIGHT_A, WIDTH_B, HEIGHT_B, 3);
     CUDA_RT_CALL(e);
