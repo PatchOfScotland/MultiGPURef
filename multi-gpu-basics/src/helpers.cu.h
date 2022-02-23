@@ -52,8 +52,8 @@ void RandomInit(T* data, unsigned seed, size_t N){
 
     curandGenerator_t generator;
     curandCreateGenerator(&generator, CURAND_RNG_PSEUDO_DEFAULT);
-    curandSetPseudoRandomGeneratorSeed(gen, seed);
-    curandGenerate(generator, data, N);
+    curandSetPseudoRandomGeneratorSeed(generator, seed);
+    curandGenerate(generator, (unsigned int*)data, N);
     curandDestroyGenerator(generator);
 }
 
