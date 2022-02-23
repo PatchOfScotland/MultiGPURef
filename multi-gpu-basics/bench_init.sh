@@ -1,6 +1,6 @@
 #!/bin/bash
 #SBATCH --job-name=MultiGPUMap
-#SBATCH --ntasks=13
+#SBATCH --ntasks=15
 #SBATCH --time=00:20:00
 #SBATCH --mem=10000m
 #SBATCH -p gpu --gres=gpu:gtx1080:3
@@ -11,6 +11,7 @@ nvcc src/initial_test.cu -o build/initial_test -O3
 nvcc src/initial_test_both.cu -o build/initial_test_both -O3
 nvcc src/initial_test_standard.cu -o build/initial_test_standard -O3
 nvcc src/initial_test_multi.cu -o build/initial_test_multi -O3
+nvcc src/initial_test_cuRand.cu -o build/initial_test_cuRand -O3
 
 ./build/initial_test_both data/initial_test_both.csv
 ./build/initial_test_prefetch data/initial_test_prefetch.csv
@@ -18,5 +19,6 @@ nvcc src/initial_test_multi.cu -o build/initial_test_multi -O3
 ./build/initial_test data/initial_test.csv
 ./build/initial_test_standard data/initial_test_standard.csv
 ./build/initial_test_multi data/initial_test_multi.csv
+./build/initial_test_cuRand data/initial_test_cuRand.csv
 
 echo "DONE!"

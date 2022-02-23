@@ -47,6 +47,16 @@ void LogHardware(char filename[]){
     }
 }
 
+template<class T>
+void RandomInit(T* data, unsigned seed, size_t N){
+
+    curandGenerator_t generator;
+    curandCreateGenerator(&generator, CURAND_RNG_PSEUDO_DEFAULT);
+    curandSetPseudoRandomGeneratorSeed(gen, seed);
+    curandGenerate(generator, data, N);
+    curandDestroyGenerator(generator);
+}
+
 
 
 template<class T>
@@ -166,6 +176,8 @@ namespace multiGPU {
 
         return cudaGetLastError();
     }
+
+    
 }
 
 
