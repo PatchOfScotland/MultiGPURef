@@ -149,6 +149,8 @@ namespace multiGPU {
 
     template<class T>
     cudaError_t init_arr(T* data, unsigned long seed, size_t N){
+        int Device  = -1;
+        cudaGetDevice(&Device);
         int Devices = -1;
         cudaGetDeviceCount(&Devices);
         
@@ -159,6 +161,8 @@ namespace multiGPU {
             cudaSetDevice(devID);
             RandomInitiation< T ><<< num_blocks, BLOCKSIZE >>>(data, seed, N, devID);
         }
+        
+        cudaSetDevice(Device);
 
         return cudaGetLastError();
     }
