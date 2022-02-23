@@ -9,5 +9,5 @@ nvcc src/mmm_bench_multi.cu -o build/mmm_bench_multi -std=c++11 -O3
 nvcc src/mmm_bench_single.cu -o build/mmm_bench_single -std=c++11 -O3
 
 ./build/mmm_bench_multi data/mmm_bench_multi_3.csv
-./build/mmm_bench_single data/mmm_bench_single
+./build/mmm_bench_single data/mmm_bench_single.csv
 echo "DONE"
