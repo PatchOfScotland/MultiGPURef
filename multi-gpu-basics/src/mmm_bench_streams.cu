@@ -25,6 +25,7 @@ int main(int argc, char* argv[]){
         output.open("/dev/null");
     }
     
+
     
     size_t A_length = HEIGHT_A * HEIGHT_B;
     size_t B_length = HEIGHT_B * WIDTH_B;
@@ -34,20 +35,26 @@ int main(int argc, char* argv[]){
     EnablePeerAccess();
     #endif
 
-    cudaError e;
-
-    int Device = -1;
+    int Device; 
     cudaGetDevice(&Device);
+    int Devices;
+    cudaGetDeviceCount(&Devices);
+    cudaStream_t streams[Devices];
 
+    for(int devID = 0; devID < Devices; devID++){
+        cudaSetDevice(devID);
+        cudaStreamCreate(&streams[devID]);
+    }
+
+    cudaError_t e;
     funcType* A;
     funcType* B;
     funcType* C_multi;
 
-    
+
     CUDA_RT_CALL(cudaMallocManaged(&A,        A_length*sizeof(funcType)));
     CUDA_RT_CALL(cudaMallocManaged(&B,        B_length*sizeof(funcType)));
-    CUDA_RT_CALL(cudaMallocManaged(&C_multi,  C_length*sizeof (funcType))); 
-
+    CUDA_RT_CALL(cudaMallocManaged(&C_multi,  C_length*sizeof (funcType)));
 
     init_array_cpu< funcType >(A, 1337, A_length);
     init_array_cpu< funcType >(B, 420, B_length);
@@ -59,9 +66,8 @@ int main(int argc, char* argv[]){
         CUDA_RT_CALL(cudaEventCreate(&stop_event));
 
         CUDA_RT_CALL(cudaEventRecord(start_event));
-        cudaError e = multiGPU::MMM_adviced_prefetch< funcType, TILE >(A,B,C_multi, HEIGHT_A, WIDTH_B, HEIGHT_B);
+        e = multiGPU::MMM_streams< funcType, TILE >(A,B,C_multi, HEIGHT_A, WIDTH_B, HEIGHT_B, streams);
         CUDA_RT_CALL(e);
-        cudaSetDevice(Device);
         CUDA_RT_CALL(cudaEventRecord(stop_event));
         CUDA_RT_CALL(cudaEventSynchronize(stop_event));
 

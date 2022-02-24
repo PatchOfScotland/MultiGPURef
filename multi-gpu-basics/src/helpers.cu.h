@@ -116,7 +116,7 @@ void printMatrix(T* A, size_t H, size_t W){
         std::cout << "\n";
     }
 }   
-
+/*
 namespace multiGPU {
 
     template<class ElTp, int T>
@@ -190,8 +190,8 @@ namespace multiGPU {
         return cudaGetLastError();
     }
 
-    
 }
+*/
 
 
 

@@ -1,6 +1,5 @@
 #include <iostream>
 #include <fstream>
-#include <chrono>
 #include "constants.cu.h"
 #include "helpers.cu.h"
 #include "map.cu"
@@ -32,23 +31,13 @@ class MapBasic {
 
 int main(int argc, char* argv[]){
 
-    std::ofstream output;
-
-    if (argc == 2){
-        output.open(argv[1]);
-    } else if (argc > 2) {
-        std::cout << "Usage filename\n";
-        exit(1);
-    } else {
-        output.open("/dev/null");
-    }
 
     #if LOGGING
     LogHardware("HWINFO.log");
     #endif
 
     #if ENABLEPEERACCESS
-    EnablePeerAccess();
+        EnablePeerAccess();
     #endif
 
 
@@ -70,32 +59,11 @@ int main(int argc, char* argv[]){
     multiGPU::ApplyMap< MapBasic<funcType> >(d_in, d_out_multiGPU, N);
     cudaDeviceSynchronize();
 
-    if (!compare_arrays_nummeric<funcType>(d_out_singleGPU, d_out_multiGPU, N)){
-        output << "INVALID RESULTS!";
+    if (compare_arrays_nummeric<funcType>(d_out_singleGPU, d_out_multiGPU, N)){
+        std::cout << "VALID RESULTS!";
     } else {
-        for(int i = 0; i < ITERATIONS; i++ ){
-
-            auto start_single = std::chrono::high_resolution_clock::now();
-            CUDA_RT_CALL(singleGPU::ApplyMap< MapBasic<funcType> >(d_in, d_out_singleGPU, N));
-            cudaDeviceSynchronize();
-            auto stop_single = std::chrono::high_resolution_clock::now();
-        
-            auto start_multi = std::chrono::high_resolution_clock::now();
-            CUDA_RT_CALL(multiGPU::ApplyMap< MapBasic<funcType> >(d_in, d_out_multiGPU, N));
-            cudaDeviceSynchronize();
-            auto stop_multi = std::chrono::high_resolution_clock::now();
-        
-            auto ms_s = std::chrono::duration_cast<std::chrono::microseconds>(stop_single - start_single);
-            auto ms_m = std::chrono::duration_cast<std::chrono::microseconds>(stop_multi - start_multi);
-        
-
-            output << ms_s.count() << ", " << ms_m.count() << "\n";
-
-        }
+        std::cout << "INVALID RESULTS!";
     }
-
-
-    output.close();
 
     cudaFree(d_in);
     cudaFree(d_out_multiGPU);

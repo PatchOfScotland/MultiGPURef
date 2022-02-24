@@ -351,6 +351,9 @@ namespace multiGPU {
         return cudaGetLastError();
     }
 
+    template<class T, int T>
+    MMM_streams
+
 
 }
 
