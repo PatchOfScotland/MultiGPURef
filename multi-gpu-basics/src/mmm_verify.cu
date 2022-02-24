@@ -53,9 +53,9 @@ int main(int argc, char* argv[]){
     CUDA_RT_CALL(cudaMallocManaged(&C_multi,  C_length*sizeof (funcType)));
     CUDA_RT_CALL(cudaMallocManaged(&C_trivial,  C_length*sizeof (funcType)));
 
-    CUDA_RT_CALL(init_arr< funcType >(A, 1337, A_length));
-    CUDA_RT_CALL(init_arr< funcType >(B, 420, B_length));
-    cudaDeviceSynchronize();
+    init_array_cpu< funcType >(A, 1337, A_length);
+    init_array_cpu< funcType >(B, 420, B_length);
+    
 
     e = singleGPU::MMM< funcType, TILE >(A, B, C_single, HEIGHT_A, WIDTH_B, HEIGHT_B);
     CUDA_RT_CALL(e);

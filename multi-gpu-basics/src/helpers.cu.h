@@ -4,6 +4,8 @@
 #include<curand.h>
 #include<curand_kernel.h>
 #include "constants.cu.h"
+#include<stdio.h>
+#include<stdlib.h>
 
 template<class T>
 __global__ void init_arr_kernel(T* data, unsigned long seed, size_t N){
@@ -20,6 +22,14 @@ __global__ void init_arr_kernel_iota(T* data, unsigned long seed, size_t N){
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
     if (idx < N){
       data[idx] = (T)idx;
+    }
+}
+
+template<class T>
+void init_array_cpu(T* data, unsigned int seed, size_t N){
+    srand(seed);
+    for(int i = 0; i < N; i++){
+        data[i] = (T)(rand() % 0xF);
     }
 }
 
@@ -46,16 +56,19 @@ void LogHardware(char filename[]){
         }
     }
 }
+/*
+
+ Can't Link to CuRand for some bizzar reason?
 
 template<class T>
 void RandomInit(T* data, unsigned seed, size_t N){
-
     curandGenerator_t generator;
     curandCreateGenerator(&generator, CURAND_RNG_PSEUDO_DEFAULT);
     curandSetPseudoRandomGeneratorSeed(generator, seed);
     curandGenerate(generator, (unsigned int*)data, N);
     curandDestroyGenerator(generator);
 }
+*/
 
 
 

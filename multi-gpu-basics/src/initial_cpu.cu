@@ -39,7 +39,7 @@ int main(int argc, char* argv[]){
         CUDA_RT_CALL(cudaEventRecord(start));
         CUDA_RT_CALL(cudaMallocManaged(&A, N*sizeof(funcType)));
         
-        init_array_cpu< funcType >(A, 1337, N);
+        CUDA_RT_CALL(init_arr< funcType >(A, 1337, N));
         CUDA_RT_CALL(cudaEventRecord(stop));
         CUDA_RT_CALL(cudaEventSynchronize(stop));
 

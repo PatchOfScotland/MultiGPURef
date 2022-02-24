@@ -49,11 +49,8 @@ int main(int argc, char* argv[]){
     CUDA_RT_CALL(cudaMallocManaged(&C_multi,  C_length*sizeof (funcType))); 
 
 
-    e = multiGPU::init_arr< funcType >(A, 1337, A_length);
-    CUDA_RT_CALL(e);
-    e = multiGPU::init_arr< funcType >(B, 420, B_length);
-    CUDA_RT_CALL(e);
-    cudaDeviceSynchronize();
+    init_array_cpu< funcType >(A, 1337, A_length);
+    init_array_cpu< funcType >(B, 420, B_length);
 
     for(int run = 0; run < ITERATIONS; run++){
         cudaEvent_t start_event, stop_event;
