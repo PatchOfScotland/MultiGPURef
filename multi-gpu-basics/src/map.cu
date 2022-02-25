@@ -103,11 +103,12 @@ namespace multiGPU {
         cudaGetDeviceCount(&DeviceNum);
 
         size_t allocated_per_device = (N + DeviceNum - 1) / DeviceNum;
-        size_t dataSize =  allocated_per_device*sizeof(typename MapFunc::InpElTp);
         size_t num_blocks = (allocated_per_device + BLOCKSIZE - 1 ) / BLOCKSIZE;
         for(int devID=0; devID < DeviceNum; devID++){
+            std::cout << "DevID:" << devID << "\n";
             cudaSetDevice(devID);
             MapMultiGPU< MapFunc ><<<num_blocks, BLOCKSIZE>>>(d_input[devID], output[devID], devID, N);
+            CUDA_RT_CALL(cudaGetLastError());
         }
         cudaSetDevice(Device);
         return cudaGetLastError();

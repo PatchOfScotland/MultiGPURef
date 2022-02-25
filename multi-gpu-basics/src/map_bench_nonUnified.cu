@@ -54,9 +54,9 @@ int main(int argc, char* argv[]){
 
     for(int devID = 0; devID < Devices; devID++){
         int offset = ArrayPerDevice * devID;
-        CUDA_RT_CALL(cudaMalloc(&d_in[devID], ARRAY_LENGTH*sizeof(funcType)));
-        CUDA_RT_CALL(cudaMalloc(&d_out[devID], ARRAY_LENGTH*sizeof(funcType)));
-        CUDA_RT_CALL(cudaMemcpy(&d_in[devID], h_in + offset, ArrayPerDevice*sizeof(funcType), cudaMemcpyHostToDevice));
+        CUDA_RT_CALL(cudaMalloc(&d_in[devID], ArrayPerDevice*sizeof(funcType)));
+        CUDA_RT_CALL(cudaMalloc(&d_out[devID], ArrayPerDevice*sizeof(funcType)));
+        CUDA_RT_CALL(cudaMemcpy(d_in[devID], h_in + offset, ArrayPerDevice*sizeof(funcType), cudaMemcpyDefault));
     }
     
     
