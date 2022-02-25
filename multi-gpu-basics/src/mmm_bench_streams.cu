@@ -11,7 +11,6 @@
 
 typedef int funcType;
 
-
 int main(int argc, char* argv[]){
 
     std::ofstream output;
@@ -24,9 +23,7 @@ int main(int argc, char* argv[]){
     } else {
         output.open("/dev/null");
     }
-    
-
-    
+        
     size_t A_length = HEIGHT_A * HEIGHT_B;
     size_t B_length = HEIGHT_B * WIDTH_B;
     size_t C_length = HEIGHT_A * WIDTH_B;
@@ -45,16 +42,17 @@ int main(int argc, char* argv[]){
         cudaSetDevice(devID);
         cudaStreamCreate(&streams[devID]);
     }
+    cudaSetDevice(Device);
 
     cudaError_t e;
     funcType* A;
     funcType* B;
-    funcType* C_multi;
+    funcType* C;
 
 
-    CUDA_RT_CALL(cudaMallocManaged(&A,        A_length*sizeof(funcType)));
-    CUDA_RT_CALL(cudaMallocManaged(&B,        B_length*sizeof(funcType)));
-    CUDA_RT_CALL(cudaMallocManaged(&C_multi,  C_length*sizeof (funcType)));
+    CUDA_RT_CALL(cudaMallocManaged(&A, A_length*sizeof(funcType)));
+    CUDA_RT_CALL(cudaMallocManaged(&B, B_length*sizeof(funcType)));
+    CUDA_RT_CALL(cudaMallocManaged(&C, C_length*sizeof(funcType)));
 
     init_array_cpu< funcType >(A, 1337, A_length);
     init_array_cpu< funcType >(B, 420, B_length);
@@ -66,7 +64,7 @@ int main(int argc, char* argv[]){
         CUDA_RT_CALL(cudaEventCreate(&stop_event));
 
         CUDA_RT_CALL(cudaEventRecord(start_event));
-        e = multiGPU::MMM_streams< funcType, TILE >(A,B,C_multi, HEIGHT_A, WIDTH_B, HEIGHT_B, streams);
+        e = multiGPU::MMM_streams< funcType, TILE >(A,B,C, HEIGHT_A, WIDTH_B, HEIGHT_B, streams);
         CUDA_RT_CALL(e);
         CUDA_RT_CALL(cudaEventRecord(stop_event));
         CUDA_RT_CALL(cudaEventSynchronize(stop_event));

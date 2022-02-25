@@ -78,7 +78,7 @@ namespace multiGPU {
         for(int devID = 0; devID < DeviceNum; devID++){
             int offset = devID * allocated_per_device;
             CUDA_RT_CALL(cudaMemAdvise(input + offset, dataSize, cudaMemAdviseSetReadMostly, devID));
-            CUDA_RT_CALL(cudaMemPrefetchAsync(input + offset, dataSize, devID));
+            //CUDA_RT_CALL(cudaMemPrefetchAsync(input + offset, dataSize, devID));
             CUDA_RT_CALL(cudaMemAdvise(output + offset, dataSize, cudaMemAdviseSetAccessedBy, devID));
             CUDA_RT_CALL(cudaMemAdvise(output + offset, dataSize, cudaMemAdviseSetPreferredLocation, devID));
         }
@@ -93,7 +93,6 @@ namespace multiGPU {
 
     template<class MapFunc>
     cudaError_t ApplyMapNonUnified(
-        typename MapFunc::InpElTp* h_input,
         typename MapFunc::InpElTp* d_input[],
         typename MapFunc::RedElTp* output[],
         size_t N
@@ -106,11 +105,6 @@ namespace multiGPU {
         size_t allocated_per_device = (N + DeviceNum - 1) / DeviceNum;
         size_t dataSize =  allocated_per_device*sizeof(typename MapFunc::InpElTp);
         size_t num_blocks = (allocated_per_device + BLOCKSIZE - 1 ) / BLOCKSIZE;
-        for(int devID = 0; devID < DeviceNum; devID++){
-            int offset = devID * allocated_per_device;
-            cudaMemcpy(d_input[devID], h_input + offset, dataSize, cudaMemcpyHostToDevice);
-        }
-
         for(int devID=0; devID < DeviceNum; devID++){
             cudaSetDevice(devID);
             MapMultiGPU< MapFunc ><<<num_blocks, BLOCKSIZE>>>(d_input[devID], output[devID], devID, N);
@@ -135,8 +129,8 @@ namespace multiGPU {
         size_t num_blocks           = (allocated_per_device + BLOCKSIZE - 1 ) / BLOCKSIZE;
         for(int devID = 0; devID < DeviceNum; devID++){
             int offset = devID * allocated_per_device;
-            CUDA_RT_CALL(cudaMemAdvise(input + offset, dataSize, cudaMemAdviseSetReadMostly, devID));
-            CUDA_RT_CALL(cudaMemPrefetchAsync(input + offset, dataSize, devID, streams[devID]));
+            CUDA_RT_CALL(cudaMemAdvise(input + offset, dataSize, cudaMemAdviseSetReadMostly,  devID));
+            CUDA_RT_CALL(cudaMemPrefetchAsync(input + offset, dataSize, devID,       streams[devID]));
             CUDA_RT_CALL(cudaMemAdvise(output + offset, dataSize, cudaMemAdviseSetAccessedBy, devID));
             CUDA_RT_CALL(cudaMemAdvise(output + offset, dataSize, cudaMemAdviseSetPreferredLocation, devID));
         }
