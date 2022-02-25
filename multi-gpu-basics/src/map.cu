@@ -43,17 +43,20 @@ namespace multiGPU {
         typename MapFunc::RedElTp* output,
         size_t N
     ){
+        int Device;
+        cudaGetDevice(&Device);
+        
         int DeviceNum;
         cudaGetDeviceCount(&DeviceNum);
 
-            size_t allocated_per_device = (N + DeviceNum - 1) / DeviceNum; 
+        size_t allocated_per_device = (N + DeviceNum - 1) / DeviceNum; 
         size_t num_blocks           = (allocated_per_device + BLOCKSIZE - 1 ) / BLOCKSIZE;
     
         for(int devID=0; devID < DeviceNum; devID++){
             cudaSetDevice(devID);
             MapMultiGPU< MapFunc ><<<num_blocks, BLOCKSIZE>>>(input, output, devID, N);
         }
-        cudaSetDevice(0);
+        cudaSetDevice(Device);
         return cudaGetLastError();
     }
 
@@ -63,6 +66,9 @@ namespace multiGPU {
         typename MapFunc::RedElTp* output,
         size_t N
     ){
+        int Device;
+        cudaGetDevice(&Device);
+
         int DeviceNum;
         cudaGetDeviceCount(&DeviceNum);
 
@@ -71,17 +77,17 @@ namespace multiGPU {
         size_t num_blocks = (allocated_per_device + BLOCKSIZE - 1 ) / BLOCKSIZE;
         for(int devID = 0; devID < DeviceNum; devID++){
             int offset = devID * allocated_per_device;
-            cudaMemAdvise(input + offset, dataSize, cudaMemAdviseSetReadMostly, devID);
-            cudaMemPrefetchAsync(input + offset, dataSize, devID);
-            cudaMemAdvise(output + offset, dataSize, cudaMemAdviseSetAccessedBy, devID);
-            cudaMemAdvise(output + offset, dataSize, cudaMemAdviseSetPreferredLocation, devID);
+            CUDA_RT_CALL(cudaMemAdvise(input + offset, dataSize, cudaMemAdviseSetReadMostly, devID));
+            CUDA_RT_CALL(cudaMemPrefetchAsync(input + offset, dataSize, devID));
+            CUDA_RT_CALL(cudaMemAdvise(output + offset, dataSize, cudaMemAdviseSetAccessedBy, devID));
+            CUDA_RT_CALL(cudaMemAdvise(output + offset, dataSize, cudaMemAdviseSetPreferredLocation, devID));
         }
 
         for(int devID=0; devID < DeviceNum; devID++){
             cudaSetDevice(devID);
             MapMultiGPU< MapFunc ><<<num_blocks, BLOCKSIZE>>>(input, output, devID, N);
         }
-        cudaSetDevice(0);
+        cudaSetDevice(Device);
         return cudaGetLastError();
     }
 
@@ -92,6 +98,8 @@ namespace multiGPU {
         typename MapFunc::RedElTp* output[],
         size_t N
     ){
+        int Device;
+        cudaGetDevice(&Device);
         int DeviceNum;
         cudaGetDeviceCount(&DeviceNum);
 
@@ -107,7 +115,7 @@ namespace multiGPU {
             cudaSetDevice(devID);
             MapMultiGPU< MapFunc ><<<num_blocks, BLOCKSIZE>>>(d_input[devID], output[devID], devID, N);
         }
-        cudaSetDevice(0);
+        cudaSetDevice(Device);
         return cudaGetLastError();
     }
 
@@ -127,10 +135,10 @@ namespace multiGPU {
         size_t num_blocks           = (allocated_per_device + BLOCKSIZE - 1 ) / BLOCKSIZE;
         for(int devID = 0; devID < DeviceNum; devID++){
             int offset = devID * allocated_per_device;
-            cudaMemAdvise(input + offset, dataSize, cudaMemAdviseSetReadMostly, devID);
-            cudaMemPrefetchAsync(input + offset, dataSize, devID, streams[devID]);
-            cudaMemAdvise(output + offset, dataSize, cudaMemAdviseSetAccessedBy, devID);
-            cudaMemAdvise(output + offset, dataSize, cudaMemAdviseSetPreferredLocation, devID);
+            CUDA_RT_CALL(cudaMemAdvise(input + offset, dataSize, cudaMemAdviseSetReadMostly, devID));
+            CUDA_RT_CALL(cudaMemPrefetchAsync(input + offset, dataSize, devID, streams[devID]));
+            CUDA_RT_CALL(cudaMemAdvise(output + offset, dataSize, cudaMemAdviseSetAccessedBy, devID));
+            CUDA_RT_CALL(cudaMemAdvise(output + offset, dataSize, cudaMemAdviseSetPreferredLocation, devID));
         }
 
         for(int devID=0; devID < DeviceNum; devID++){

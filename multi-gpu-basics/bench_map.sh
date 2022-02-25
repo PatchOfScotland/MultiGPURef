@@ -3,7 +3,7 @@
 #SBATCH --ntasks=11
 #SBATCH --time=00:20:00
 #SBATCH --mem=10000m
-#SBATCH -p gpu --gres=gpu:gtx1080:3
+#SBATCH -p gpu --gres=gpu:gtx1080:2
 
 nvcc src/map_bench_nonUnified.cu  -o build/map_bench_nonUnified -O3
 nvcc src/map_bench_prefetch.cu -o build/map_bench_prefetch -O3
