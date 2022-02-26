@@ -177,13 +177,15 @@ namespace multiGPU {
                     Creg[i] += Ash[i][k] * b;
                 }
             }
+            __syncthreads();
         }
-        __syncthreads();
         for(int i = 0; i < T; i++){
             if ((ii + i) < heightA && j < widthB)  {
-                C[(i + ii) * widthB + j] = Creg[i];
+                C[(ii + i) * widthB + j] = Creg[i];
+                
             }
         }
+
     }
 
 
@@ -227,22 +229,21 @@ namespace multiGPU {
             ElTp* A,
             ElTp* B, 
             ElTp* C, 
-            int A_height, 
-            int B_width, 
-            int B_height,
+            int A_h, 
+            int B_w, 
+            int B_h,
             int emulatedDevices
         ) {
         dim3 block(T, T, 1);
-        int grid_x_total = ceil((float)B_width / (T * T));
-        int grid_y_total = ceil((float)A_height / (T)); 
+        int grid_x_total = ceil((float)B_w / (T * T));
+        int grid_y_total = ceil((float)A_h / (T)); 
         int grid_x = grid_x_total; // Keep this the same value and divide over the Y's
         int grid_y = (grid_y_total + emulatedDevices - 1) / emulatedDevices; // Same trick to get matching blocksizes
 
         dim3 grid(grid_x, grid_y, 1);
 
-
         for(int dev_id = 0; dev_id < emulatedDevices; dev_id++){
-            matMultRegTiledKernel< ElTp, T ><<<grid, block>>>(A,B,C, A_height, B_width, B_height, dev_id);
+            matMultRegTiledKernel< ElTp, T ><<<grid, block>>>(A,B,C, A_h, B_w, B_h, dev_id);
         }
         return cudaGetLastError();
     }       
@@ -252,12 +253,12 @@ namespace multiGPU {
         const int64_t i = blockIdx.x * blockDim.x + threadIdx.x;
         const int64_t j = devID * gridDim.y * blockDim.y  + blockIdx.y * blockDim.y + threadIdx.y;
         
-        if (i < B_width || j < A_height) {
+        if (i < B_width && j < A_height) {
             int accum = 0;
             for(int k = 0; k < B_height; k++){
                 accum += A[j*B_height + k] * B[k*B_width + i];
             }
-            C[j * A_height + i] = accum;
+            C[j * B_width + i] = accum;
         }
     }
 
@@ -272,7 +273,6 @@ namespace multiGPU {
             int emulatedDevices
         ) {
         dim3 block(T, T, 1);
-        //std::cout << A_height << ", " << B_width << ", " << B_height << ", " << T <<  "\n";
 
         int grid_x_total = ceil((float)B_width / (T));
         int grid_y_total = ceil((float)A_height / (T)); 

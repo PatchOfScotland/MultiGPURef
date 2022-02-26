@@ -13,23 +13,42 @@ __global__ void init_arr_kernel(T* data, unsigned long seed, size_t N){
     if (idx < N){
       curandState state;
       curand_init(seed, idx, 0, &state);
-      data[idx] = (T)((curand(&state)) & 0xF); // Numeric instability 
+      data[idx] = ((T)((curand(&state)) & 0xF)) + 1; // Numeric instability 
     }
 }
 
 template<class T>
-__global__ void init_arr_kernel_iota(T* data, unsigned long seed, size_t N){
+__global__ void init_arr_kernel_iota(T* data, size_t N){
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
     if (idx < N){
-      data[idx] = (T)idx;
+      data[idx] = (T)blockIdx.x;
     }
 }
+
+template<class T>
+__global__ void init_arr_const(T* data, T con, size_t N){
+    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    if (idx < N) data[idx] = con; 
+}
+
+template<class T>
+__global__ void init_arr_identity(T* data, size_t H, size_t W){
+    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    int i = idx / W;
+    int j = idx % W;
+
+    if (idx < W*H){
+        data[idx] = (i==j) ? 1 : 0;
+    }
+}
+
+
 
 template<class T>
 void init_array_cpu(T* data, unsigned int seed, size_t N){
     srand(seed);
     for(int i = 0; i < N; i++){
-        data[i] = (T)(rand() % 0xF);
+        data[i] = (T)(rand() % 0xF) + 1;
     }
 }
 
@@ -56,6 +75,10 @@ void LogHardware(char filename[]){
         }
     }
 }
+
+
+
+
 /*
 
  Can't Link to CuRand for some bizzar reason?
@@ -79,10 +102,13 @@ cudaError_t init_arr(T* data, unsigned long seed, size_t N){
     return cudaGetLastError();
 }
 
+
 template<class T>
 bool compare_arrays(T* arr1, T* arr2, size_t N){
     for(size_t i = 0; i < N; i++){
         if (arr1[i] != arr2[i]){
+            std::cout << "i:" << i << " arr1: " << arr1[i] << " arr2: " << arr2[i] <<"\n";
+
             return false;
         }
     }
@@ -114,6 +140,19 @@ void printMatrix(T* A, size_t H, size_t W){
         for (size_t j = 0; j < W; j++)
             (j == W-1) ? std::cout << A[i*H + j] : std::cout << A[i*H + j] << ", ";
         std::cout << "\n";
+    }
+}   
+
+template<class T>
+void saveMatrix(std::string filename, T* A, size_t H, size_t W){
+    std::ofstream file;
+    file.open(filename);
+
+
+    for(size_t i = 0; i < H; i++){
+        for (size_t j = 0; j < W; j++)
+            (j == W-1) ? file << A[i*H + j] : file << A[i*H + j] << ", ";
+        file << "\n";
     }
 }   
 /*
