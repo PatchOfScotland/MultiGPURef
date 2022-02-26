@@ -316,11 +316,7 @@ namespace multiGPU {
         dim3 grid(grid_x, grid_y, 1);
         size_t grid_byte_count = grid_x* grid_y * T * T * sizeof(ElTp);
         
-        
-        //cudaStream_t deviceStream[DeviceCount];
-
         for(int devID = 0; devID < DeviceCount; devID++){
-            //cudaStreamCreate(&deviceStream[devID]);
             cudaMemAdvise(A, A_size, cudaMemAdviseSetReadMostly, devID);
             cudaMemAdvise(B, B_size, cudaMemAdviseSetReadMostly, devID);
             
@@ -341,18 +337,11 @@ namespace multiGPU {
             matMultRegTiledKernel< ElTp, T ><<<grid, block >>>(A,B,C, A_height, B_width, B_height, devID);
 
         }
-        
-        //for(int devID = 0; devID < DeviceCount; devID++){
-        //    cudaStreamDestroy(deviceStream[devID]);
-        //}
 
         cudaSetDevice(Device);
 
         return cudaGetLastError();
     }
-
-    template<class T, int T>
-    MMM_streams
 
 
 }
