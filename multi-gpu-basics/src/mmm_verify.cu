@@ -104,14 +104,6 @@ int main(int argc, char* argv[]){
         std::cout << "MultiCore is correct\n";
     } else {
         std::cout << "MultiCore is incorrect\n";
-        //printMatrix<funcType>(A, TEST_HEIGHT_A, TEST_HEIGHT_B);
-        //std::cout << "\n\n";
-        //printMatrix<funcType>(B, TEST_HEIGHT_B, TEST_WIDTH_B);
-        //std::cout << "\n\n";
-        //printMatrix<funcType>(C_trivial, TEST_HEIGHT_A, TEST_WIDTH_B);
-        //std::cout << "\n\n";
-        //printMatrix<funcType>(C_single, TEST_HEIGHT_A, TEST_WIDTH_B);
-        //std::cout << "\n\n";
     }
 
     
