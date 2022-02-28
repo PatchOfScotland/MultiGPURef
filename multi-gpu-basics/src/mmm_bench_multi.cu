@@ -34,8 +34,6 @@ int main(int argc, char* argv[]){
     EnablePeerAccess();
     #endif
 
-    cudaError e;
-
     int Device = -1;
     cudaGetDevice(&Device);
 

@@ -125,7 +125,8 @@ namespace multiGPU {
         size_t N,
         cudaStream_t streams[]
     ){
-
+        int Device = -1;
+        cudaGetDevice(&Device)
         int DeviceNum;
         cudaGetDeviceCount(&DeviceNum);
 
@@ -144,9 +145,11 @@ namespace multiGPU {
 
         size_t num_blocks           = (chunkSize_high + BLOCKSIZE - 1 ) / BLOCKSIZE;
         for(int devID=0; devID < DeviceNum; devID++){
+            cudaSetDevice(devID)
             MapMultiGPU< MapFunc ><<<num_blocks, BLOCKSIZE, 0, streams[devID]>>>(input, output, devID, N);
             CUDA_RT_CALL(cudaGetLastError());
         }
+        cudaSetDevice(Device);
         return cudaGetLastError();
     }
 }

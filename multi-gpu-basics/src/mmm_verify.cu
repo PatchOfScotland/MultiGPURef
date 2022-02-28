@@ -16,7 +16,7 @@
 
 #define ENABLEPEERACCESS 1
 
-typedef int64_t funcType;
+typedef float funcType;
 
 template<class T> 
 __global__ void subtract(T* A, T* B, T* C, size_t N){

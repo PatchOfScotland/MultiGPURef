@@ -64,8 +64,8 @@ int main(int argc, char* argv[]){
     singleGPU::ApplyMap< MapBasic<funcType> >(d_in, d_single, N);
     multiGPU::ApplyMap< MapBasic<funcType> >(d_in, d_multi, N);
     multiGPU::ApplyMapPrefetchAdvice< MapBasic<funcType > >(d_in, d_prefetch, N);
-    multiGPU::ApplyMapStreams< MapBasic <funcType >>(d_in, d_streams, N, streams);
-    multiGPU::ApplyMapNonUnified< MapBasic< funcType >>(d_in_noUnified, d_in_noUnified, N);
+    multiGPU::ApplyMapStreams< MapBasic <funcType > >(d_in, d_streams, N, streams);
+    multiGPU::ApplyMapNonUnified< MapBasic< funcType > >(d_in_noUnified, d_in_noUnified, N);
     cudaDeviceSynchronize();
 
     std::string multiRes = (compare_arrays_nummeric<funcType>(d_single, d_multi, N)) ? "MULTI-GPU VALID RESULTS!\n" : "MULTI-GPU INVALID RESULTS!\n" ;
