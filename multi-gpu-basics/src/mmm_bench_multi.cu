@@ -49,7 +49,7 @@ int main(int argc, char* argv[]){
     init_array_cpu< funcType >(A, 1337, A_length);
     init_array_cpu< funcType >(B, 420, B_length);
 
-    for(int run = 0; run < ITERATIONS; run++){
+    for(int run = 0; run < ITERATIONS + 1; run++){
         cudaEvent_t start_event, stop_event;
 
         CUDA_RT_CALL(cudaEventCreate(&start_event));
