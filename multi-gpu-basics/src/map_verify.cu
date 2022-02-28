@@ -9,24 +9,6 @@
 
 typedef float funcType;
 
-template<class T>
-class MapP2 {
-    public:
-        typedef T InpElTp;
-        typedef T RedElTp;
-
-        static __device__ __host__ RedElTp apply(const InpElTp i) {return i+2;};
-};
-
-template<class T>
-class MapBasic {
-    public:
-        typedef T InpElTp;
-        typedef T RedElTp;
-
-        static __device__ __host__ RedElTp apply(const InpElTp i) {return i * i ;};
-};
-
 int main(int argc, char* argv[]){
     #if LOGGING
     LogHardware("HWINFO.log");

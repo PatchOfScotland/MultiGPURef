@@ -5,4 +5,6 @@
 #SBATCH --mem=10000m
 #SBATCH -p gpu --gres=gpu:gtx1080:3
 
-./map_test GPU1080NUM3MAP.csv
+nvcc src/map_verify.cu -o build/map_verify -O3
+
+./build/map_verify

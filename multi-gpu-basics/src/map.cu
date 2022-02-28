@@ -72,13 +72,20 @@ namespace multiGPU {
         int DeviceNum;
         cudaGetDeviceCount(&DeviceNum);
 
+        size_t chunkSize_low = N / DeviceNum;
+        size_t chunkSize_high = chunkSize_low + 1; 
+        size_t largeChunks = N % DeviceNum;
+
+
         size_t allocated_per_device = (N + DeviceNum - 1) / DeviceNum;
-        size_t dataSize = allocated_per_device*sizeof(typename MapFunc::InpElTp);
+        
         size_t num_blocks = (allocated_per_device + BLOCKSIZE - 1 ) / BLOCKSIZE;
+        size_t offset = 0;
         for(int devID = 0; devID < DeviceNum; devID++){
-            int offset = devID * allocated_per_device;
-            CUDA_RT_CALL(cudaMemAdvise(input + offset, dataSize, cudaMemAdviseSetReadMostly, devID));
-            CUDA_RT_CALL(cudaMemPrefetchAsync(input + offset, dataSize, devID));
+            size_t dataSize = (devID < largeChunks) ? chunkSize_high : chunkSize_low;
+            CUDA_RT_CALL(cudaMemAdvise(input + offset, dataSize *sizeof(typename MapFunc::InpElTp), cudaMemAdviseSetReadMostly, devID));
+            CUDA_RT_CALL(cudaMemPrefetchAsync(input + offset, dataSize *sizeof(typename MapFunc::InpElTp), devID));
+            offset += dataSize;
         }
 
         for(int devID=0; devID < DeviceNum; devID++){
@@ -122,15 +129,20 @@ namespace multiGPU {
         int DeviceNum;
         cudaGetDeviceCount(&DeviceNum);
 
-        size_t allocated_per_device = (N + DeviceNum - 1) / DeviceNum;
-        size_t dataSize =  allocated_per_device*sizeof(typename MapFunc::InpElTp);
-        size_t num_blocks           = (allocated_per_device + BLOCKSIZE - 1 ) / BLOCKSIZE;
+        size_t chunkSize_low = N / DeviceNum;
+        size_t chunkSize_high = chunkSize_low + 1; 
+        size_t largeChunks = N % DeviceNum;
+
+        
+        size_t offset = 0;
         for(int devID = 0; devID < DeviceNum; devID++){
-            int offset = devID * allocated_per_device;
-            CUDA_RT_CALL(cudaMemAdvise(input + offset, dataSize, cudaMemAdviseSetReadMostly,  devID));
-            CUDA_RT_CALL(cudaMemPrefetchAsync(input + offset, dataSize, devID,       streams[devID]));
+            size_t dataSize = (devID < largeChunks) ? chunkSize_high : chunkSize_low; 
+            CUDA_RT_CALL(cudaMemAdvise(input + offset, dataSize*sizeof(typename MapFunc::InpElTp), cudaMemAdviseSetReadMostly,  devID));
+            CUDA_RT_CALL(cudaMemPrefetchAsync(input + offset, dataSize*sizeof(typename MapFunc::InpElTp), devID,  streams[devID]));
+            offset += dataSize;
         }
 
+        size_t num_blocks           = (chunkSize_high + BLOCKSIZE - 1 ) / BLOCKSIZE;
         for(int devID=0; devID < DeviceNum; devID++){
             MapMultiGPU< MapFunc ><<<num_blocks, BLOCKSIZE, 0, streams[devID]>>>(input, output, devID, N);
             CUDA_RT_CALL(cudaGetLastError());
