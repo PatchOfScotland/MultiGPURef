@@ -1,8 +1,8 @@
 #!/bin/bash
 #SBATCH --job-name=MultiGPUMap
-#SBATCH --ntasks=1
+#SBATCH --ntasks=2
 #SBATCH --time=00:10:00
-#SBATCH --mem=10000m
+#SBATCH --mem=20000m
 #SBATCH -p gpu --gres=gpu:gtx1080:3
 
 nvcc src/map_verify.cu -o build/map_verify -O3
