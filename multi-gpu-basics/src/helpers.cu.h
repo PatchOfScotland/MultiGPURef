@@ -142,19 +142,6 @@ void printMatrix(T* A, size_t H, size_t W){
         std::cout << "\n";
     }
 }   
-
-template<class T>
-void saveMatrix(std::string filename, T* A, size_t H, size_t W){
-    std::ofstream file;
-    file.open(filename);
-
-
-    for(size_t i = 0; i < H; i++){
-        for (size_t j = 0; j < W; j++)
-            (j == W-1) ? file << A[i*H + j] : file << A[i*H + j] << ", ";
-        file << "\n";
-    }
-}   
 /*
 namespace multiGPU {
 
