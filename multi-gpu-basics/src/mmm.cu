@@ -12,12 +12,12 @@ namespace singleGPU {
 
     template <class ElTp, int T> 
     __global__ void matMultRegTiledKernel(
-        ElTp* A,
-        ElTp* B,
+        const ElTp* A,
+        const ElTp* B,
         ElTp* C, 
-        int heightA, 
-        int widthB, 
-        int widthA
+        const int heightA, 
+        const int widthB, 
+        const int widthA
     ) {
         __shared__ ElTp Ash[T][T];
 
@@ -77,12 +77,12 @@ namespace singleGPU {
 
     template< class ElTp, int T>
     cudaError_t MMM(
-            ElTp* A,
-            ElTp* B, 
+            const ElTp* A,
+            const ElTp* B, 
             ElTp* C, 
-            int A_height, 
-            int B_width, 
-            int B_height
+            const int A_height, 
+            const int B_width, 
+            const int B_height
         ) {
             dim3 block(T, T, 1);
             int grid_x = ceil((float)B_width / (T * T));
@@ -110,12 +110,12 @@ namespace singleGPU {
 
     template< class ElTp, int T>
     cudaError_t MMM_trivial(
-        ElTp* A,
-        ElTp* B, 
+        const ElTp* A,
+        const ElTp* B, 
         ElTp* C, 
-        int A_height, 
-        int B_width, 
-        int B_height
+        const int A_height, 
+        const int B_width, 
+        const int B_height
     ) {
         dim3 block(T, T, 1);
         int grid_x = ceil((float)B_width / (T));
@@ -134,7 +134,7 @@ namespace singleGPU {
 namespace multiGPU {
 
     template <class ElTp, int T> 
-    __global__ void matMultRegTiledKernel(ElTp* A, ElTp* B, ElTp* C, int heightA, int widthB, int widthA, int devID) {
+    __global__ void matMultRegTiledKernel(const ElTp* A, const ElTp* B, ElTp* C, const int heightA,const int widthB, const int widthA, const int devID) {
         __shared__ ElTp Ash[T][T];
 
         ElTp Creg[T];
@@ -191,12 +191,12 @@ namespace multiGPU {
 
     template< class ElTp, int T>
     cudaError_t MMM(
-            ElTp* A,
-            ElTp* B, 
+            const ElTp* A,
+            const ElTp* B, 
             ElTp* C, 
-            int A_height, 
-            int B_width, 
-            int B_height
+            const int A_height, 
+            const int B_width, 
+            const int B_height
         ) {
 
         int DeviceCount;
@@ -205,14 +205,14 @@ namespace multiGPU {
         int Device = -1;
         cudaGetDevice(&Device);
 
-        dim3 block(T, T, 1);
-        int grid_x_total = ceil((float)B_width / (T * T));
-        int grid_y_total = ceil((float)A_height / (T)); 
+        const dim3 block(T, T, 1);
+        const int grid_x_total = ceil((float)B_width / (T * T));
+        const int grid_y_total = ceil((float)A_height / (T)); 
         
-        int grid_x = grid_x_total; // Keep this the same value and divide over the Y's
-        int grid_y = (grid_y_total + DeviceCount - 1) / DeviceCount; // Same trick to get matching blocksizes
+        const int grid_x = grid_x_total; // Keep this the same value and divide over the Y's
+        const int grid_y = (grid_y_total + DeviceCount - 1) / DeviceCount; // Same trick to get matching blocksizes
 
-        dim3 grid(grid_x, grid_y, 1);
+        const dim3 grid(grid_x, grid_y, 1);
 
         for(int dev_id = 0; dev_id < DeviceCount; dev_id++){
             cudaSetDevice(dev_id);
@@ -226,21 +226,21 @@ namespace multiGPU {
 
     template< class ElTp, int T>
     cudaError_t MMM_emulated(
-            ElTp* A,
-            ElTp* B, 
+            const ElTp* A,
+            const ElTp* B, 
             ElTp* C, 
-            int A_h, 
-            int B_w, 
-            int B_h,
-            int emulatedDevices
+            const int A_h, 
+            const int B_w, 
+            const int B_h,
+            const int emulatedDevices
         ) {
-        dim3 block(T, T, 1);
-        int grid_x_total = ceil((float)B_w / (T * T));
-        int grid_y_total = ceil((float)A_h / (T)); 
-        int grid_x = grid_x_total; // Keep this the same value and divide over the Y's
-        int grid_y = (grid_y_total + emulatedDevices - 1) / emulatedDevices; // Same trick to get matching blocksizes
+        const dim3 block(T, T, 1);
+        const int grid_x_total = ceil((float)B_w / (T * T));
+        const int grid_y_total = ceil((float)A_h / (T)); 
+        const int grid_x = grid_x_total; // Keep this the same value and divide over the Y's
+        const int grid_y = (grid_y_total + emulatedDevices - 1) / emulatedDevices; // Same trick to get matching blocksizes
 
-        dim3 grid(grid_x, grid_y, 1);
+        const dim3 grid(grid_x, grid_y, 1);
 
         for(int dev_id = 0; dev_id < emulatedDevices; dev_id++){
             matMultRegTiledKernel< ElTp, T ><<<grid, block>>>(A,B,C, A_h, B_w, B_h, dev_id);
@@ -249,7 +249,7 @@ namespace multiGPU {
     }       
 
     template<class ElTp, int T>
-    __global__ void matMultTrivial(ElTp* A, ElTp* B, ElTp* C, int A_height, int B_width, int B_height, int devID){
+    __global__ void matMultTrivial(const ElTp* A, const ElTp* B, ElTp* C, const int A_height, const int B_width, const int B_height, const int devID){
         const int64_t i = blockIdx.x * blockDim.x + threadIdx.x;
         const int64_t j = devID * gridDim.y * blockDim.y  + blockIdx.y * blockDim.y + threadIdx.y;
         
@@ -264,23 +264,23 @@ namespace multiGPU {
 
     template< class ElTp, int T>
     cudaError_t MMM_trivial_emulated(
-            ElTp* A,
-            ElTp* B, 
+            const ElTp* A,
+            const ElTp* B, 
             ElTp* C, 
-            int A_height, 
-            int B_width, 
-            int B_height,
-            int emulatedDevices
+            const int A_height, 
+            const const int B_width, 
+            const int B_height,
+            const int emulatedDevices
         ) {
-        dim3 block(T, T, 1);
+        const dim3 block(T, T, 1);
 
-        int grid_x_total = ceil((float)B_width / (T));
-        int grid_y_total = ceil((float)A_height / (T)); 
+        const int grid_x_total = ceil((float)B_width / (T));
+        const int grid_y_total = ceil((float)A_height / (T)); 
         
-        int grid_x = grid_x_total; // Keep this the same value and divide over the Y's
-        int grid_y = (grid_y_total + emulatedDevices - 1) / emulatedDevices; // Same trick to get matching blocksizes
+        const int grid_x = grid_x_total; // Keep this the same value and divide over the Y's
+        const int grid_y = (grid_y_total + emulatedDevices - 1) / emulatedDevices; // Same trick to get matching blocksizes
 
-        dim3 grid(grid_x, grid_y, 1);
+        const dim3 grid(grid_x, grid_y, 1);
 
 
         for(int dev_id = 0; dev_id < emulatedDevices; dev_id++){
@@ -291,30 +291,30 @@ namespace multiGPU {
     
     template< class ElTp, int T>
     cudaError_t MMM_adviced_prefetch(
-        ElTp* A,
-        ElTp* B, 
+        const ElTp* A,
+        const ElTp* B, 
         ElTp* C, 
-        int A_height, 
-        int B_width, 
-        int B_height
+        const int A_height, 
+        const int B_width, 
+        const int B_height
     ){
         int Device = -1;
         cudaGetDevice(&Device);
         int DeviceCount;
         cudaGetDeviceCount(&DeviceCount);
 
-        size_t A_size = A_height * B_height * sizeof(ElTp);
-        size_t B_size = B_width  * B_height * sizeof(ElTp);
+        const size_t A_size = A_height * B_height * sizeof(ElTp);
+        const size_t B_size = B_width  * B_height * sizeof(ElTp);
 
-        dim3 block(T, T, 1);
-        int grid_x_total = ceil((float)B_width / (T * T));
-        int grid_y_total = ceil((float)A_height / (T)); 
+        const dim3 block(T, T, 1);
+        const int grid_x_total = ceil((float)B_width / (T * T));
+        const int grid_y_total = ceil((float)A_height / (T)); 
         
-        int grid_x = grid_x_total; // Keep this the same value and divide over the Y's
-        int grid_y = (grid_y_total + DeviceCount - 1) / DeviceCount; // Same trick to get matching blocksizes
+        const int grid_x = grid_x_total; // Keep this the same value and divide over the Y's
+        const int grid_y = (grid_y_total + DeviceCount - 1) / DeviceCount; // Same trick to get matching blocksizes
 
-        dim3 grid(grid_x, grid_y, 1);
-        size_t grid_byte_count = grid_x* grid_y * T * T * sizeof(ElTp);
+        const dim3 grid(grid_x, grid_y, 1);
+        const size_t grid_byte_count = grid_x* grid_y * T * T * sizeof(ElTp);
         
         for(int devID = 0; devID < DeviceCount; devID++){
             cudaMemAdvise(A, A_size, cudaMemAdviseSetReadMostly, devID);
