@@ -12,8 +12,8 @@ namespace singleGPU {
 
     template <class ElTp, int T> 
     __global__ void matMultRegTiledKernel(
-        const ElTp* A,
-        const ElTp* B,
+        const ElTp* __restrict__ A,
+        const ElTp* __restrict__ B,
         ElTp* C, 
         const int heightA, 
         const int widthB, 
@@ -134,7 +134,15 @@ namespace singleGPU {
 namespace multiGPU {
 
     template <class ElTp, int T> 
-    __global__ void matMultRegTiledKernel(const ElTp* A, const ElTp* B, ElTp* C, const int heightA,const int widthB, const int widthA, const int devID) {
+    __global__ void matMultRegTiledKernel(
+            const ElTp* __restrict__ A, 
+            const ElTp* __restrict__ B, 
+            ElTp* C, 
+            const int heightA,
+            const int widthB,
+            const int widthA,
+            const int devID
+        ) {
         __shared__ ElTp Ash[T][T];
 
         ElTp Creg[T];
@@ -268,7 +276,7 @@ namespace multiGPU {
             const ElTp* B, 
             ElTp* C, 
             const int A_height, 
-            const const int B_width, 
+            const int B_width, 
             const int B_height,
             const int emulatedDevices
         ) {
