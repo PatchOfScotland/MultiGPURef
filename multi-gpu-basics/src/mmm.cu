@@ -2,9 +2,9 @@
 #define MMM_H
 #include <iostream> // for debuggin
     
-#define HEIGHT_A 16384   
-#define HEIGHT_B 16384  // Given that HEIGHT_B = WIDTH_A
-#define WIDTH_B  16384
+#define HEIGHT_A 8192   
+#define HEIGHT_B 8192  // Given that HEIGHT_B = WIDTH_A
+#define WIDTH_B  8192
 
 
 
