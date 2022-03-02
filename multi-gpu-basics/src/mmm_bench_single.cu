@@ -56,6 +56,7 @@ int main(int argc, char* argv[]){
         CUDA_RT_CALL(cudaEventRecord(start_event));
         e = singleGPU::MMM< funcType, TILE >(A,B,C_multi, HEIGHT_A, WIDTH_B, HEIGHT_B);
         CUDA_RT_CALL(e);
+        syncronize();
         CUDA_RT_CALL(cudaEventRecord(stop_event));
         CUDA_RT_CALL(cudaEventSynchronize(stop_event));
 

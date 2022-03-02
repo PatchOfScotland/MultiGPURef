@@ -141,7 +141,20 @@ void printMatrix(T* A, size_t H, size_t W){
             (j == W-1) ? std::cout << A[i*H + j] : std::cout << A[i*H + j] << ", ";
         std::cout << "\n";
     }
-}   
+} 
+
+void syncronize(){
+    int Device;
+    int DeviceCount;
+    cudaGetDevice(&Device);
+    cudaGetDeviceCount(&DeviceCount);
+    for(int devID = 0; devID < DeviceCount; devID++){
+        cudaSetDevice(devID);
+        cudaDeviceSynchronize();
+    }
+    cudaSetDevice(Device);
+}
+
 /*
 namespace multiGPU {
 

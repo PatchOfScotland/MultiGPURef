@@ -66,6 +66,7 @@ int main(int argc, char* argv[]){
         CUDA_RT_CALL(cudaEventRecord(start_event));
         e = multiGPU::MMM_streams< funcType, TILE >(A,B,C, HEIGHT_A, WIDTH_B, HEIGHT_B, streams);
         CUDA_RT_CALL(e);
+        syncronize();
         CUDA_RT_CALL(cudaEventRecord(stop_event));
         CUDA_RT_CALL(cudaEventSynchronize(stop_event));
 

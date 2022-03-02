@@ -38,6 +38,8 @@ int gpuaAssert(cudaError_t code) {
 
 
 void EnablePeerAccess(){
+  int Device;
+  cudaGetDevice(&Device);
   int DeviceCount;
   cudaGetDeviceCount(&DeviceCount);
   for(int i = 0; i < DeviceCount; i++){
@@ -52,7 +54,7 @@ void EnablePeerAccess(){
         }
       }
     }
-  cudaSetDevice(0);
+  cudaSetDevice(Device);
   }
 }
 
