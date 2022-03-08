@@ -58,7 +58,7 @@ int main(int argc, char* argv[]){
         CUDA_RT_CALL(cudaEventRecord(start_event));
         e = multiGPU::ApplyMap< MapBasic<funcType> >(in, out, ARRAY_LENGTH);
         CUDA_RT_CALL(e);
-        syncronize();
+        DeviceSyncronize();
         CUDA_RT_CALL(cudaEventRecord(stop_event));
         CUDA_RT_CALL(cudaEventSynchronize(stop_event));
 

@@ -65,7 +65,7 @@ int main(int argc, char* argv[]){
         CUDA_RT_CALL(cudaEventRecord(start_event));
         e = multiGPU::scatterUM< funcType >(data, idxs, data_idx, DATA_LENGTH, IDX_LENGTH);
         CUDA_RT_CALL(e);
-        syncronize();
+        DeviceSyncronize();
         CUDA_RT_CALL(cudaEventRecord(stop_event));
         CUDA_RT_CALL(cudaEventSynchronize(stop_event));
 

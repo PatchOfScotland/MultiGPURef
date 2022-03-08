@@ -39,7 +39,7 @@ int main(int argc, char* argv[]){
     e = multiGPU::scatterUM<int64_t>(data_M, idx_M, idx_vals_M, DATA_LENGTH, IDX_LENGTH);
     CUDA_RT_CALL(e);
 
-    syncronize();
+    DeviceSyncronize();
 
     if(compare_arrays<int64_t>(data_S, data_M, DATA_LENGTH)){
         std::cout << "MULTIGPU is correct\n";

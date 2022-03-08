@@ -150,7 +150,7 @@ int jacobi(float* src, float* dst, const int h, const int w){
                 devID
             );
         }
-        syncronize();
+        DeviceSyncronize();
         norm = 0.0;
         for(int devID=0;devID < DeviceCount; devID++){
             norm += norm_d[devID];

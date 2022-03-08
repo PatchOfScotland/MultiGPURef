@@ -167,7 +167,7 @@ void printMatrix(T* A, size_t H, size_t W){
     }
 } 
 
-void syncronize(){
+void DeviceSyncronize(){
     int Device;
     int DeviceCount;
     cudaGetDevice(&Device);

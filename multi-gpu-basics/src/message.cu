@@ -50,7 +50,7 @@ int main(int argv, char *const argc)
     kernel<<<1, 1, 0, streams[devID]>>>(shared, arr, devID, DeviceCount, events, streams);
   }
 
-  syncronize();
+  DeviceSyncronize();
 
   for (int i = 0; i < DeviceCount; i++)
   {
