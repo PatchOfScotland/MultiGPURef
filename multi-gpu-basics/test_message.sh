@@ -5,6 +5,6 @@
 #SBATCH --mem=20000m
 #SBATCH -p gpu --gres=gpu:gtx1080:3
 
-nvcc src/message.cu -o build/message -O3 --relocatable-device-code
+nvcc src/message.cu -o build/message -O3 --relocatable-device-code -std=c++11
 
 ./build/message

@@ -5,10 +5,10 @@
 #SBATCH --mem=10000m
 #SBATCH -p gpu --gres=gpu:gtx1080:2
 
-nvcc src/scatter_bench_single.cu -o build/scatter_bench_single -O3
-nvcc src/scatter_bench_multi.cu -o build/scatter_bench_multi -O3
-nvcc src/scatter_bench_single_no_reset.cu -o build/scatter_bench_single_no_reset -O3
-nvcc src/scatter_bench_multi_no_reset.cu -o build/scatter_bench_multi_no_reset -O3
+nvcc src/scatter_bench_single.cu -o build/scatter_bench_single -O3 -std=c++11
+nvcc src/scatter_bench_multi.cu -o build/scatter_bench_multi -O3 -std=c++11
+nvcc src/scatter_bench_single_no_reset.cu -o build/scatter_bench_single_no_reset -O3 -std=c++11
+nvcc src/scatter_bench_multi_no_reset.cu -o build/scatter_bench_multi_no_reset -O3 -std=c++11
 
 ./build/scatter_bench_single data/scatter_bench_single.csv
 ./build/scatter_bench_multi data/scatter_bench_multi.csv

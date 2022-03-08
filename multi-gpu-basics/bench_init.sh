@@ -5,13 +5,13 @@
 #SBATCH --mem=10000m
 #SBATCH -p gpu --gres=gpu:gtx1080:3
 
-nvcc src/initial_test_advice.cu -o build/initial_test_advice  -O3
-nvcc src/initial_test_prefetch.cu -o build/initial_test_prefetch  -O3
-nvcc src/initial_test.cu -o build/initial_test -O3
-nvcc src/initial_test_both.cu -o build/initial_test_both -O3
-nvcc src/initial_test_standard.cu -o build/initial_test_standard -O3
-nvcc src/initial_test_multi.cu -o build/initial_test_multi -O3
-nvcc src/initial_test_cuRand.cu -o build/initial_test_cuRand -O3
+nvcc src/initial_test_advice.cu -o build/initial_test_advice  -O3 -std=c++11
+nvcc src/initial_test_prefetch.cu -o build/initial_test_prefetch  -O3 -std=c++11
+nvcc src/initial_test.cu -o build/initial_test -O3 -std=c++11
+nvcc src/initial_test_both.cu -o build/initial_test_both -O3 -std=c++11
+nvcc src/initial_test_standard.cu -o build/initial_test_standard -O3 -std=c++11
+nvcc src/initial_test_multi.cu -o build/initial_test_multi -O3 -std=c++11
+nvcc src/initial_test_cuRand.cu -o build/initial_test_cuRand -O3 -std=c++11
 
 ./build/initial_test_both data/initial_test_both.csv
 ./build/initial_test_prefetch data/initial_test_prefetch.csv
