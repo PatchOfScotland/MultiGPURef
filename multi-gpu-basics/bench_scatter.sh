@@ -3,7 +3,7 @@
 #SBATCH --ntasks=9
 #SBATCH --time=00:20:00
 #SBATCH --mem=10000m
-#SBATCH -p gpu --gres=gpu:gtx1080:3
+#SBATCH -p gpu --gres=gpu:gtx1080:2
 
 nvcc src/scatter_bench_single.cu -o build/scatter_bench_single -O3
 nvcc src/scatter_bench_multi.cu -o build/scatter_bench_multi -O3
