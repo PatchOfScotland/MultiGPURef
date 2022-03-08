@@ -6,6 +6,7 @@
 #include "constants.cu.h"
 #include<stdio.h>
 #include<stdlib.h>
+#include<unordered_set>
 
 template<class T>
 __global__ void init_arr_kernel(T* data, unsigned long seed, size_t N){
@@ -21,7 +22,7 @@ template<class T>
 __global__ void init_arr_kernel_iota(T* data, size_t N){
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
     if (idx < N){
-      data[idx] = (T)blockIdx.x;
+      data[idx] = (T)blockIdx.x * blockDim.x + threadIdx.x;
     }
 }
 
@@ -42,7 +43,30 @@ __global__ void init_arr_identity(T* data, size_t H, size_t W){
     }
 }
 
+template<class T>
+void init_array_permutation(T* data, size_t N, size_t max_permutations, unsigned int seed){
+    srand(seed);
+    for(int p = 0; p < max_permutations; p++){
+        size_t i = rand() % N;
+        size_t j = rand() % N;
+        std::swap(data[i], data[j]);
+    }
+}
 
+void init_idxs(int64_t max_val, uint32_t seed, int64_t* idxs, uint64_t numIdxs ){
+
+    std::unordered_set<uint64_t> idx_set;
+    while(idx_set.size() < numIdxs){
+        int64_t elem = rand() % max_val;
+        idx_set.insert(elem);
+    }
+
+    uint64_t iter = 0;
+    for(auto it = idx_set.begin(); it != idx_set.end(); ++it){
+        idxs[iter] = *it;
+        iter++;
+    }
+}
 
 template<class T>
 void init_array_cpu(T* data, unsigned int seed, size_t N){
