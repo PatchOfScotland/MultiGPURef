@@ -43,6 +43,8 @@ namespace multiGPU {
     }
 
     cudaError_t atomicTest(int* address, int threads){
+        int Device;
+        cudaGetDevice(&Device);
         int DeviceCount;
         cudaGetDeviceCount(&DeviceCount);
         const int64_t blockSize = 1024;
@@ -55,10 +57,15 @@ namespace multiGPU {
             int64_t threadsPerDevice = (devID < highDevices) ? threadsPerDevice_high : threadsPerDevice_low;
             atomicKernel<<<numBlocks, blockSize>>>(address, threadsPerDevice);
         }
+        
+        cudaSetDevice(Device);
+        
         return cudaGetLastError();
     }
 
     cudaError_t atomicSystemTest(int* address, int threads){
+        int Device;
+        cudaGetDevice(&Device);
         int DeviceCount;
         cudaGetDeviceCount(&DeviceCount);
         const int64_t blockSize = 1024;
@@ -71,6 +78,7 @@ namespace multiGPU {
             int64_t threadsPerDevice = (devID < highDevices) ? threadsPerDevice_high : threadsPerDevice_low;
             atomicSystemKernel<<<numBlocks, blockSize>>>(address, threadsPerDevice);
         }
+        cudaSetDevice(Device);
         return cudaGetLastError();
     }
 
