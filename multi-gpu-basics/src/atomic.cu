@@ -9,18 +9,15 @@
 namespace singleGPU {
     __global__ void atomicKernel(int* add, int64_t threadsMax){
         if ( blockDim.x * blockIdx.x + threadIdx.x < threadsMax ) {
-            for(int i = 0; i < 10; i++){
-                atomicAdd(add, 1);
-            }
+            atomicAdd(add, 1);
         }
     }    
 
     __global__ void atomicSystemKernel(int* add, int64_t threadsMax){
         if ( blockDim.x * blockIdx.x + threadIdx.x < threadsMax ) {
-            for(int i = 0; i < 10; i++){
-                atomicAdd_system(add, 1);
-            }
+            atomicAdd_system(add, 1);
         }
+        
     }
 
     cudaError_t atomicTest(int* add, int threads){
@@ -44,17 +41,13 @@ namespace multiGPU {
 
     __global__ void atomicKernel(int* add, int64_t threadsMax){
         if ( blockDim.x * blockIdx.x + threadIdx.x < threadsMax ) {
-            for(int i = 0; i < 10; i++){
-                atomicAdd(add, 1);
-            }
+            atomicAdd(add, 1);
         }
     }    
 
     __global__ void atomicSystemKernel(int* add, int64_t threadsMax){
         if ( blockDim.x * blockIdx.x + threadIdx.x < threadsMax ) {
-            for(int i = 0; i < 10; i++){
-                atomicAdd_system(add, 1);
-            }
+            atomicAdd_system(add, 1);
         }
     }
 

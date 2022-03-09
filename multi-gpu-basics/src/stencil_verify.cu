@@ -40,13 +40,13 @@ int main(int argc, char* argv[]){
     float* arr_1_multi;
     float* arr_2_multi;
 
-    cudaMallocManaged(&arr_1_multi, x*y*sizeof(float));
-    cudaMallocManaged(&arr_2_multi, x*y*sizeof(float));
+    cudaMallocManaged(&arr_1_multi, x * y * sizeof(float));
+    cudaMallocManaged(&arr_2_multi, x * y * sizeof(float));
 
     CUDA_RT_CALL(init_stencil(arr_1_multi, y, x));
     CUDA_RT_CALL(init_stencil(arr_2_multi, y, x));
 
-    int interations = jacobi(arr_1_multi, arr_2_multi, y, x);
+    CUDA_RT_CALL(singleGPU::jacobi(arr_1_multi, arr_2_multi, y, x));
 
 
 
