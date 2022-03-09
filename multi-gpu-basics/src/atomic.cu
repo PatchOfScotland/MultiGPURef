@@ -9,13 +9,19 @@
 namespace singleGPU {
     __global__ void atomicKernel(int* add, int64_t threadsMax){
         if ( blockDim.x * blockIdx.x + threadIdx.x < threadsMax ) {
-            atomicAdd(add, 1);
+            for(int = 0; i < 100; i++){
+                atomicAdd(add, 1);
+
+            }
         }
     }    
 
     __global__ void atomicSystemKernel(int* add, int64_t threadsMax){
         if ( blockDim.x * blockIdx.x + threadIdx.x < threadsMax ) {
-            atomicAdd_system(add, 1);
+            for(int = 0; i < 100; i++){
+                atomicAdd_system(add, 1);
+            }
+            
         }
         
     }
@@ -41,13 +47,17 @@ namespace multiGPU {
 
     __global__ void atomicKernel(int* add, int64_t threadsMax){
         if ( blockDim.x * blockIdx.x + threadIdx.x < threadsMax ) {
-            atomicAdd(add, 1);
+            for(int = 0; i < 100; i++){
+                atomicAdd(add, 1);
+            }
         }
     }    
 
     __global__ void atomicSystemKernel(int* add, int64_t threadsMax){
         if ( blockDim.x * blockIdx.x + threadIdx.x < threadsMax ) {
-            atomicAdd_system(add, 1);
+            for(int = 0; i < 100; i++){
+                atomicAdd_system(add, 1);
+            }
         }
     }
 

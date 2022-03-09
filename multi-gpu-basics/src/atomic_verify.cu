@@ -28,10 +28,10 @@ int main(int argc, const char** argv){
 
     DeviceSyncronize();
 
-    (*single_atomic_address == THREADSSIZE) ? std::cout<< "Single atomic Address is correct\n" : std::cout<< "Single atomic Address is incorrect with value: " << *single_atomic_address << "\n";
-    (*multi_atomic_address == THREADSSIZE) ? std::cout<< "Multi atomic Address is correct\n" : std::cout<< "multi atomic Address is incorrect with value: " << *multi_atomic_address << "\n";
-    (*single_atomic_system_address == THREADSSIZE) ? std::cout<< "Single System atomic Address is correct\n" : std::cout<< "Single system atomic Address is incorrect with value: " << *single_atomic_system_address << "\n";
-    (*multi_atomic_system_address == THREADSSIZE) ? std::cout<< "Multi System atomic Address is correct\n" : std::cout<< "Multi system atomic Address is incorrect with value: " << *multi_atomic_system_address << "\n";
+    (*single_atomic_address == 100*THREADSSIZE) ? std::cout<< "Single atomic Address is correct\n" : std::cout<< "Single atomic Address is incorrect with value: " << *single_atomic_address << "\n";
+    (*multi_atomic_address == 100*THREADSSIZE) ? std::cout<< "Multi atomic Address is correct\n" : std::cout<< "multi atomic Address is incorrect with value: " << *multi_atomic_address << "\n";
+    (*single_atomic_system_address == 100*THREADSSIZE) ? std::cout<< "Single System atomic Address is correct\n" : std::cout<< "Single system atomic Address is incorrect with value: " << *single_atomic_system_address << "\n";
+    (*multi_atomic_system_address == 100*THREADSSIZE) ? std::cout<< "Multi System atomic Address is correct\n" : std::cout<< "Multi system atomic Address is incorrect with value: " << *multi_atomic_system_address << "\n";
     
     cudaFree(single_atomic_address);
     cudaFree(single_atomic_system_address);
