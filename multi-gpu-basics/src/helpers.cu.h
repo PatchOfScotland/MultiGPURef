@@ -140,9 +140,9 @@ bool compare_arrays(T* arr1, T* arr2, size_t N){
 }
 
 template<class T>
-bool compare_arrays_nummeric(T* arr1, T* arr2, size_t N){
+bool compare_arrays_nummeric(T* arr1, T* arr2, size_t N, T tol){
     for(size_t i = 0; i < N; i++){
-        if (abs(arr1[i] - arr2[i]) > EPSILON){
+        if (abs(arr1[i] - arr2[i]) > tol){
             return false;
         }
     }

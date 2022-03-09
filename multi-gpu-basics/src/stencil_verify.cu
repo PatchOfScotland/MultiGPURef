@@ -37,18 +37,25 @@ int main(int argc, char* argv[]){
 
     EnablePeerAccess();
 
+    float* arr_1_single;
+    float* arr_2_single;
     float* arr_1_multi;
     float* arr_2_multi;
 
+    cudaMallocManaged(&arr_1_single, x * y * sizeof(float));
+    cudaMallocManaged(&arr_2_single, x * y * sizeof(float));
     cudaMallocManaged(&arr_1_multi, x * y * sizeof(float));
     cudaMallocManaged(&arr_2_multi, x * y * sizeof(float));
 
+    CUDA_RT_CALL(init_stencil(arr_1_single, y, x));
+    CUDA_RT_CALL(init_stencil(arr_2_single, y, x));
     CUDA_RT_CALL(init_stencil(arr_1_multi, y, x));
     CUDA_RT_CALL(init_stencil(arr_2_multi, y, x));
 
-    CUDA_RT_CALL(singleGPU::jacobi(arr_1_multi, arr_2_multi, y, x));
+    CUDA_RT_CALL(singleGPU::jacobi(arr_1_single, arr_2_single, y, x));
+    CUDA_RT_CALL(multiGPU::jacobi(arr_1_multi, arr_2_multi, y, x));
 
-
+    (compare_arrays_nummeric<float>(arr_1_single, arr_1_multi, x * y, 1e-4)) ? std::cout << "Single and multi are equal\n" : std::cout << "Single and multi are not equal\n";
 
     return 0;
 }
