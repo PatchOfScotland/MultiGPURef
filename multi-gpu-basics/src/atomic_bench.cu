@@ -57,24 +57,24 @@ int main(int argc, const char** argv){
         CUDA_RT_CALL(cudaEventCreate(&multi_system_atomic_stop));
 
         CUDA_RT_CALL(cudaEventRecord(single_atomic_start));
-        e = singleGPU::atomicTest(single_atomic_address, 100*THREADSSIZE);
+        e = singleGPU::atomicTest(single_atomic_address, 10*THREADSSIZE);
         CUDA_RT_CALL(e);
         DeviceSyncronize();
         CUDA_RT_CALL(cudaEventRecord(single_atomic_stop));
         
         CUDA_RT_CALL(cudaEventRecord(single_system_atomic_start));
-        e = singleGPU::atomicSystemTest(single_atomic_system_address, 100*THREADSSIZE);
+        e = singleGPU::atomicSystemTest(single_atomic_system_address, 10*THREADSSIZE);
         CUDA_RT_CALL(e);
         DeviceSyncronize();
         CUDA_RT_CALL(cudaEventRecord(single_system_atomic_stop));
 
         CUDA_RT_CALL(cudaEventRecord(multi_atomic_start));
-        e = multiGPU::atomicTest(multi_atomic_address, 100*THREADSSIZE);
+        e = multiGPU::atomicTest(multi_atomic_address, 10*THREADSSIZE);
         DeviceSyncronize();
         CUDA_RT_CALL(cudaEventRecord(multi_atomic_stop));
 
         CUDA_RT_CALL(cudaEventRecord(multi_system_atomic_start));
-        e = multiGPU::atomicSystemTest(multi_atomic_system_address, 100*THREADSSIZE);
+        e = multiGPU::atomicSystemTest(multi_atomic_system_address, 10*THREADSSIZE);
         CUDA_RT_CALL(e);
         DeviceSyncronize();
         CUDA_RT_CALL(cudaEventRecord(multi_system_atomic_stop));
