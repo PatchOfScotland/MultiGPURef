@@ -30,7 +30,6 @@ cudaError_t init_stencil(float* __restrict__ const a, const int h, const int w){
 }
 
 namespace singleGPU{
-
     __global__ void jacobiKernel (
             float* src, 
             float* dst, 
@@ -73,22 +72,23 @@ namespace singleGPU{
 
             __syncthreads();
 
-        const float new_value = (FocusArea[(threadIdx.y + 1) * blockDim.x + threadIdx.x + 2] + 
+            const float new_value = (FocusArea[(threadIdx.y + 1) * blockDim.x + threadIdx.x + 2] + 
                                  FocusArea[(threadIdx.y + 1) * blockDim.x + threadIdx.x] + 
                                  FocusArea[(threadIdx.y + 2) * blockDim.x + threadIdx.x + 1] + 
                                  FocusArea[threadIdx.y * blockDim.x + threadIdx.x + 1]) / 4;
 
 
-        dst[y*w + x] = new_value;
-        const float local_norm = powf(new_value - src[y * w + x], 2);   
-
-        scanMem[flat_idx] = local_norm;
-        __syncthreads();
-        scanIncBlock< Add <float> >(scanMem, flat_idx);
-        __syncthreads();
-        }
-        if(flat_idx == 0){
-            atomicAdd(l2_norm, scanMem[ blockDim.x * blockDim.y - 1]);
+            dst[y*w + x] = new_value;
+            const float local_norm = powf(new_value - src[y * w + x], 2);   
+        
+            scanMem[flat_idx] = local_norm;
+            __syncthreads();
+            scanIncBlock< Add <float> >(scanMem, flat_idx);
+            __syncthreads();
+            }
+            if(flat_idx == 0){
+                atomicAdd(l2_norm, scanMem[ blockDim.x * blockDim.y - 1]);
+            }
         }
     }
 
@@ -98,7 +98,7 @@ namespace singleGPU{
 
         float* norm_d;
 
-        CUDA_RT_CALL(cudaMallocManaged(&norm_d, sizeof(float) ));
+        CUDA_RT_CALL(cudaMallocManaged(&norm_d, sizeof(float)));
 
         const int blockSize = 32;
 
@@ -134,7 +134,9 @@ namespace singleGPU{
 }
 
 namespace multiGPU {
-    __global__ void jacobiKernel (
+    
+
+    __global__ void jacobiKernel(
             float* src, 
             float* dst, 
             float* l2_norm,
@@ -185,14 +187,17 @@ namespace multiGPU {
 
         dst[y*w + x] = new_value;
         const float local_norm = powf(new_value - src[y * w + x], 2);   
-
+        
         scanMem[flat_idx] = local_norm;
         __syncthreads();
         scanIncBlock< Add <float> >(scanMem, flat_idx);
         __syncthreads();
         }
         if(flat_idx == 0){
-            atomicAdd(l2_norm, scanMem[ blockDim.x * blockDim.y - 1]);
+            atomicAdd_system(l2_norm, scanMem[ blockDim.x * blockDim.y - 1]);
+            //atomicAdd(l2_norm, );
+        }
+        
         }
     }
 
@@ -210,7 +215,7 @@ namespace multiGPU {
 
         float* norm_d;
 
-        CUDA_RT_CALL(cudaMallocManaged(&norm_d, DeviceCount*sizeof(float) ));
+        CUDA_RT_CALL(cudaMallocManaged(&norm_d, sizeof(float) ));
 
         const int blockSize = 32;
 
@@ -261,25 +266,29 @@ namespace multiGPU {
                 jacobiKernel<<<grid, block, shmemSize>>>(
                     src, 
                     dst, 
-                    norm_d + devID, 
+                    norm_d, 
                     h, 
                     w, 
                     devID
                 );
             }
             DeviceSyncronize();
-            norm = 0.0;
-            for(int devID=0;devID < DeviceCount; devID++){
-                norm += norm_d[devID];
-            }
+            
+            norm = *norm_d;
             norm = std::sqrt(norm);
             std::swap(src, dst);
+            if(iter % 100 == 0){
+                std::cout << "Norm: " << norm << "\n";
+            }
             iter++;
+            
         }
         std::cout << "Jacobi completed with " << iter << " iterations and Norm " << norm << "\n";
         return cudaGetLastError();
     }
 }
+
+
 
 
 #endif

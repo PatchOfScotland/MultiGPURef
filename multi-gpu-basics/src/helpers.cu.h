@@ -76,6 +76,14 @@ void init_array_cpu(T* data, unsigned int seed, size_t N){
     }
 }
 
+template<class T>
+void init_array_float(T* data, unsigned int seed, size_t N){
+    srand(seed);
+    for(int i = 0; i < N; i++){
+        data[i] = (T) rand() / RAND_MAX;
+    }
+}
+
 void LogHardware(char filename[]){
     int deviceCount;
     cudaGetDeviceCount(&deviceCount);
