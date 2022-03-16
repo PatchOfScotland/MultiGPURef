@@ -140,10 +140,15 @@ int main(int argc, char** argv){
 
     File.close();
 
-    cudaFree(src_image);
-    cudaFree(single_image);
-    cudaFree(dst_image);
-    cudaFree(dst_image_no_hints);
+    cudaFree(arr_1_multi);
+    cudaFree(arr_2_multi);
+    cudaFree(arr_1_no_hints);
+    cudaFree(arr_2_no_hints);
+    cudaFree(arr_1_single);
+    cudaFree(arr_2_single);
+    cudaFree(norm_multi);
+    cudaFree(norm_no_hints);
+    cudaFree(norm_single);
 
 
     return 0;

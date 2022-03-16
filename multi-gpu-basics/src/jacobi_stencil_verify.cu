@@ -125,7 +125,9 @@ int main(int argc, char* argv[]){
     cudaFree(arr_2_emulated);
     cudaFree(arr_1_single);
     cudaFree(arr_2_single);
-    
+    cudaFree(norm_multi);
+    cudaFree(norm_emulated);
+    cudaFree(norm_single);
 
 
     return 0;
