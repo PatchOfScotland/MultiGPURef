@@ -53,7 +53,10 @@ int main(int argc, char** argv){
     float* norm_no_hints;
     float* arr_1_normArr;
     float* arr_2_normArr;
-    float* norm_normArr;    
+    float* norm_normArr; 
+    float* arr_1_no_norm;
+    float* arr_2_no_norm;
+    
 
     cudaError_t e;
 
@@ -72,6 +75,9 @@ int main(int argc, char** argv){
     cudaMallocManaged(&arr_1_normArr, x * y * sizeof(float));
     cudaMallocManaged(&arr_2_normArr, x * y * sizeof(float));
     cudaMallocManaged(&norm_normArr, DeviceCount*sizeof(float));
+    cudaMallocManaged(&arr_1_no_norm, x * y * sizeof(float));
+    cudaMallocManaged(&arr_2_no_norm, x * y * sizeof(float));
+
 
     for(int run = 0; run < ITERATIONS + 1; run++){
         e = init_stencil(arr_1_multi, y, x);
@@ -90,8 +96,12 @@ int main(int argc, char** argv){
         CUDA_RT_CALL(e);
         e = init_stencil(arr_2_normArr, y, x);
         CUDA_RT_CALL(e);
+        e = init_stencil(arr_1_no_norm, y, x);
+        CUDA_RT_CALL(e);
+        e = init_stencil(arr_2_no_norm, y, x);
+        CUDA_RT_CALL(e);
 
-        float ms_single, ms_multi, ms_no_hints, ms_normArr;
+        float ms_single, ms_multi, ms_no_hints, ms_normArr, ms_no_norm;
 
         cudaEvent_t start_single;
         cudaEvent_t stop_single;
@@ -146,9 +156,25 @@ int main(int argc, char** argv){
         DeviceSyncronize();
         CUDA_RT_CALL(cudaEventElapsedTime(&ms_normArr, start_normArr, stop_normArr));
 
+        cudaEvent_t start_no_norm;
+        cudaEvent_t stop_no_norm;
+
+        CUDA_RT_CALL(cudaEventCreate(&start_no_norm));
+        CUDA_RT_CALL(cudaEventCreate(&stop_no_norm));
+
+        CUDA_RT_CALL(cudaEventRecord(start_no_norm));
+        e = multiGPU::jacobi_no_norm<32>(arr_1_no_norm, arr_2_no_norm, y, x);
+        CUDA_RT_CALL(e);
+        CUDA_RT_CALL(cudaEventRecord(stop_no_norm));    
+        DeviceSyncronize();
+        CUDA_RT_CALL(cudaEventElapsedTime(&ms_no_norm, start_no_norm, stop_no_norm));
+
         if(File.is_open() && run != 0){
-            File << ms_single << ", " << ms_multi << ", " << ms_no_hints << " " << ms_normArr << "\n";
+            File << ms_single << ", " << ms_multi << ", " << ms_no_hints << " " << ms_normArr << " " << ms_no_norm << "\n";
         }
+
+        cudaEventDestroy(start_no_norm);
+        cudaEventDestroy(stop_no_norm);
 
         cudaEventDestroy(start_normArr);
         cudaEventDestroy(stop_normArr);
