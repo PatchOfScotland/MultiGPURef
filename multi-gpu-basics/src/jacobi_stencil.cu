@@ -490,7 +490,7 @@ namespace multiGPU {
             DeviceSyncronize();
             
             norm = 0;
-            for(int devID = 0; devID < DeviceCount, devID++){
+            for(int devID = 0; devID < DeviceCount; devID++){
                 norm += norm_d[devID];
             }
             norm = std::sqrt(norm);

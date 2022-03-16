@@ -351,8 +351,4 @@ namespace multiGPU {
 
 } // namespace multiGPU
 
-
-  
-
-
 #endif
