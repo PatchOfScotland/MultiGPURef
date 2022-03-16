@@ -7,11 +7,9 @@
 #include <cstdlib>
 #include "constants.cu.h"
 #include "helpers.cu.h"
-#include "filters_stencil.cu"
+#include "jacobi_stencil.cu"
 
-#define BLUR_IMG "blurImage.ppm"
-#define CLEAR_IMG "clearImage.ppm"
-#define OUTPUT_FILE_PATH "data/gaussian_blur.csv"
+#define OUTPUT_FILE_PATH "data/jacobi_iteration.csv"
 
 #define DEFAULT_STD 1.0
 
@@ -34,48 +32,54 @@ bool get_arg(char** begin, char** end, const std::string& arg) {
     return false;
 }
 
-template<class T>
-void DrawPPMPicture(std::string filename, T* imageData, int64_t image_height, int64_t image_width){
-    std::ofstream File(filename);
-    if(File.is_open()){
-        File << "P3\n" << image_width << ' ' << image_height << "\n255\n";
-        for(int idx = 0; idx < image_height * image_width; idx++){
-            int colorVal = static_cast<int>(255.99*imageData[idx]);
-            File << colorVal << " " << colorVal << " " << colorVal << "\n";
-        }
-        File.close();
-    } else {
-        std::cout << "Unable to open file \n";
-    }
-}
-
-
 
 
 int main(int argc, char** argv){
 
     const int x = get_argval<int>(argv, argv + argc, "-x", X);
     const int y = get_argval<int>(argv, argv + argc, "-y", Y);
-    const float stdDev = get_argval<float>(argv, argv + argc, "-std", DEFAULT_STD);
     const std::string OutputFile = get_argval<std::string>(argv, argv + argc, "-output", OUTPUT_FILE_PATH);
 
     std::ofstream File(OutputFile);
 
-    float* src_image;
-    float* single_image;
-    float* dst_image;
-    float* dst_image_no_hints;
+    float* arr_1_multi;
+    float* arr_2_multi;
+    float* norm_multi;
+    float* arr_1_single;
+    float* arr_2_single;
+    float* norm_single;
+    float* arr_2_no_hints;
+    float* arr_1_no_hints;
+    float* norm_no_hints;
 
-    size_t imageSize = x*y;
+    const int64_t imageSize = x*y;
 
-    cudaMallocManaged(&src_image, imageSize*sizeof(float));
-    cudaMallocManaged(&single_image, imageSize*sizeof(float));
-    cudaMallocManaged(&dst_image, imageSize*sizeof(float));
-    cudaMallocManaged(&dst_image_no_hints, imageSize*sizeof(float));
+    cudaError_t e;
 
-    init_array_float<float>(src_image, 1337, imageSize);    
+    cudaMallocManaged(&arr_1_single, x * y * sizeof(float));
+    cudaMallocManaged(&arr_2_single, x * y * sizeof(float));
+    cudaMallocManaged(&norm_single, sizeof(float));
+    cudaMallocManaged(&arr_1_multi, x * y * sizeof(float));
+    cudaMallocManaged(&arr_2_multi, x * y * sizeof(float));
+    cudaMallocManaged(&norm_multi, sizeof(float));
+    cudaMallocManaged(&arr_1_no_hints, x * y * sizeof(float));
+    cudaMallocManaged(&arr_2_no_hints, x * y * sizeof(float));
+    cudaMallocManaged(&norm_no_hints, sizeof(float));
 
     for(int run = 0; run < ITERATIONS + 1; run++){
+        e = init_stencil(arr_1_multi, y, x);
+        CUDA_RT_CALL(e);
+        e = init_stencil(arr_2_multi, y, x);
+        CUDA_RT_CALL(e);
+        e = init_stencil(arr_1_single, y, x);
+        CUDA_RT_CALL(e);
+        e = init_stencil(arr_2_single, y, x);
+        CUDA_RT_CALL(e);
+        e = init_stencil(arr_1_no_hints, y, x);
+        CUDA_RT_CALL(e);
+        e = init_stencil(arr_2_no_hints, y, x);
+        CUDA_RT_CALL(e);
+
         float ms_single, ms_multi, ms_no_hints;
 
         cudaEvent_t start_single;
@@ -85,7 +89,7 @@ int main(int argc, char** argv){
         CUDA_RT_CALL(cudaEventCreate(&stop_single));
 
         CUDA_RT_CALL(cudaEventRecord(start_single));
-        cudaError_t e = singleGPU::gaussian_blur<16,32>(src_image, single_image, stdDev, y, x);
+        cudaError_t e = singleGPU::jacobi<32>(arr_1_single, arr_2_single, norm_single, y, x);
         CUDA_RT_CALL(e);
         CUDA_RT_CALL(cudaEventRecord(stop_single));
         DeviceSyncronize();
@@ -99,7 +103,7 @@ int main(int argc, char** argv){
         CUDA_RT_CALL(cudaEventCreate(&stop_multi));
 
         CUDA_RT_CALL(cudaEventRecord(start_multi));
-        e = multiGPU::gaussian_blur<16, 32>(src_image, dst_image, stdDev, y, x);
+        e = multiGPU::jacobi<32>(arr_1_multi, arr_2_multi, norm_multi, y, x);
         CUDA_RT_CALL(e);
         CUDA_RT_CALL(cudaEventRecord(stop_multi));
         DeviceSyncronize();
@@ -112,7 +116,7 @@ int main(int argc, char** argv){
         CUDA_RT_CALL(cudaEventCreate(&stop_no_hints));
 
         CUDA_RT_CALL(cudaEventRecord(start_no_hints));
-        e = multiGPU::gaussian_blur_no_hints<16, 32>(src_image, dst_image_no_hints, stdDev, y, x);
+        e = multiGPU::jacobi_no_hints<32>(arr_1_single, arr_2_single, norm_single, y, x);
         CUDA_RT_CALL(e);
         CUDA_RT_CALL(cudaEventRecord(stop_no_hints));    
         DeviceSyncronize();
@@ -129,8 +133,8 @@ int main(int argc, char** argv){
         cudaEventDestroy(start_single);
         cudaEventDestroy(stop_single);
 
-        cudaEventDestroy(stop_multi);
         cudaEventDestroy(start_multi);
+        cudaEventDestroy(stop_multi);
 
     }
 
