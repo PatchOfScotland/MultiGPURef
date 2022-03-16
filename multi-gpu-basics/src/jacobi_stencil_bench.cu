@@ -51,8 +51,14 @@ int main(int argc, char** argv){
     float* arr_2_no_hints;
     float* arr_1_no_hints;
     float* norm_no_hints;
+    float* arr_1_normArr;
+    float* arr_2_normArr;
+    float* norm_normArr;    
 
     cudaError_t e;
+
+    int DeviceCount;
+    cudaGetDeviceCount(&DeviceCount);
 
     cudaMallocManaged(&arr_1_single, x * y * sizeof(float));
     cudaMallocManaged(&arr_2_single, x * y * sizeof(float));
@@ -63,6 +69,9 @@ int main(int argc, char** argv){
     cudaMallocManaged(&arr_1_no_hints, x * y * sizeof(float));
     cudaMallocManaged(&arr_2_no_hints, x * y * sizeof(float));
     cudaMallocManaged(&norm_no_hints, sizeof(float));
+    cudaMallocManaged(&arr_1_normArr, x * y * sizeof(float));
+    cudaMallocManaged(&arr_2_normArr, x * y * sizeof(float));
+    cudaMallocManaged(&norm_normArr, DeviceCount*sizeof(float));
 
     for(int run = 0; run < ITERATIONS + 1; run++){
         e = init_stencil(arr_1_multi, y, x);
@@ -77,8 +86,12 @@ int main(int argc, char** argv){
         CUDA_RT_CALL(e);
         e = init_stencil(arr_2_no_hints, y, x);
         CUDA_RT_CALL(e);
+        e = init_stencil(arr_1_normArr, y, x);
+        CUDA_RT_CALL(e);
+        e = init_stencil(arr_2_normArr, y, x);
+        CUDA_RT_CALL(e);
 
-        float ms_single, ms_multi, ms_no_hints;
+        float ms_single, ms_multi, ms_no_hints, ms_normArr;
 
         cudaEvent_t start_single;
         cudaEvent_t stop_single;
@@ -114,16 +127,31 @@ int main(int argc, char** argv){
         CUDA_RT_CALL(cudaEventCreate(&stop_no_hints));
 
         CUDA_RT_CALL(cudaEventRecord(start_no_hints));
-        e = multiGPU::jacobi_no_hints<32>(arr_1_single, arr_2_single, norm_single, y, x);
+        e = multiGPU::jacobi_no_hints<32>(arr_1_no_hints, arr_2_no_hints, norm_no_hints, y, x);
         CUDA_RT_CALL(e);
         CUDA_RT_CALL(cudaEventRecord(stop_no_hints));    
         DeviceSyncronize();
         CUDA_RT_CALL(cudaEventElapsedTime(&ms_no_hints, start_no_hints, stop_no_hints));
 
+        cudaEvent_t start_normArr;
+        cudaEvent_t stop_normArr;
+
+        CUDA_RT_CALL(cudaEventCreate(&start_normArr));
+        CUDA_RT_CALL(cudaEventCreate(&stop_normArr));
+
+        CUDA_RT_CALL(cudaEventRecord(start_normArr));
+        e = multiGPU::jacobi_normArr<32>(arr_1_normArr, arr_2_normArr, norm_normArr, y, x);
+        CUDA_RT_CALL(e);
+        CUDA_RT_CALL(cudaEventRecord(stop_normArr));    
+        DeviceSyncronize();
+        CUDA_RT_CALL(cudaEventElapsedTime(&ms_normArr, start_normArr, stop_normArr));
+
         if(File.is_open() && run != 0){
-            File << ms_single << ", " << ms_multi << ", " << ms_no_hints << "\n";
+            File << ms_single << ", " << ms_multi << ", " << ms_no_hints << " " << ms_normArr << "\n";
         }
 
+        cudaEventDestroy(start_normArr);
+        cudaEventDestroy(stop_normArr);
 
         cudaEventDestroy(start_no_hints);
         cudaEventDestroy(stop_no_hints);
@@ -147,6 +175,9 @@ int main(int argc, char** argv){
     cudaFree(norm_multi);
     cudaFree(norm_no_hints);
     cudaFree(norm_single);
+    cudaFree(arr_1_normArr);
+    cudaFree(arr_2_normArr);
+    cudaFree(norm_normArr);
 
 
     return 0;

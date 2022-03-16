@@ -393,6 +393,116 @@ namespace multiGPU {
         return cudaGetLastError();
     }
 
+    template<int blockSize>
+    cudaError_t jacobi_normArr(float* src, float* dst, float* norm_d, const int h, const int w){
+        int Device;
+        cudaGetDevice(&Device);
+        int DeviceCount;
+        cudaGetDeviceCount(&DeviceCount);
+
+        int iter   = 0;
+        float norm = 1.0;
+
+        const int rowBlocks = (h % blockSize == 0) ? h / blockSize : h / blockSize + 1;
+        const int colBlocks = (w % blockSize == 0) ? w / blockSize : w / blockSize + 1; 
+        // MemAdvices
+        int rows_per_device_low  = rowBlocks / DeviceCount;
+        int rows_per_device_high = rows_per_device_low + 1;
+        int highRows = rowBlocks % DeviceCount;
+
+        
+        int offset = 0;
+
+        const int64_t KernelRowSize = w;
+
+        for(int devID = 0; devID < DeviceCount; devID++){
+            const int64_t elems_main_block = (devID < highRows) ? 
+                rows_per_device_high * w * blockSize :
+                rows_per_device_low * w * blockSize;
+
+            CUDA_RT_CALL(cudaMemAdvise(
+                src + offset, 
+                elems_main_block*sizeof(float), 
+                cudaMemAdviseSetPreferredLocation, 
+                devID
+            ));
+
+            CUDA_RT_CALL(cudaMemAdvise(
+                dst + offset, 
+                elems_main_block*sizeof(float), 
+                cudaMemAdviseSetPreferredLocation, 
+                devID
+            ));
+                
+            if (devID != 0) CUDA_RT_CALL(cudaMemAdvise(
+                src + offset - KernelRowSize,
+                KernelRowSize * sizeof(float),
+                cudaMemAdviseSetAccessedBy,
+                devID
+            ));
+
+            if (devID != 0) CUDA_RT_CALL(cudaMemAdvise(
+                dst + offset - KernelRowSize,
+                KernelRowSize * sizeof(float),
+                cudaMemAdviseSetAccessedBy,
+                devID
+            ));
+
+            offset += elems_main_block;
+                
+            if (devID != DeviceCount - 1) CUDA_RT_CALL(cudaMemAdvise(
+                src + offset,
+                KernelRowSize * sizeof(float),
+                cudaMemAdviseSetAccessedBy,
+                devID
+            ));
+            if (devID != DeviceCount - 1) CUDA_RT_CALL(cudaMemAdvise(
+                dst + offset,
+                KernelRowSize * sizeof(float),
+                cudaMemAdviseSetAccessedBy,
+                devID
+            ));
+
+        }
+
+
+        const size_t shmemSize =  (blockSize*blockSize + (blockSize + 2) * (blockSize + 2)) * sizeof(float);
+        const dim3 block(blockSize, blockSize, 1);
+
+        while(norm > TOL && iter < MAX_ITER){
+            cudaMemset(norm_d,0, sizeof(float));
+
+            int offset = 0;
+            for(int devID = 0; devID < DeviceCount; devID++){
+                cudaSetDevice(devID);
+                size_t brows = (devID < highRows) ? rows_per_device_high : rows_per_device_low;
+                dim3 grid(colBlocks, brows,1);
+                jacobiKernel<blockSize><<<grid, block, shmemSize>>>(
+                    src, 
+                    dst, 
+                    norm_d + devID, 
+                    h, 
+                    w, 
+                    offset
+                );
+                offset += brows;
+            }
+            DeviceSyncronize();
+            
+            norm = 0;
+            for(int devID = 0; devID < DeviceCount, devID++){
+                norm += norm_d[devID];
+            }
+            norm = std::sqrt(norm);
+            std::swap(src, dst);
+            iter++;
+            
+        }
+        cudaSetDevice(Device);
+
+        return cudaGetLastError();
+    }
+
 
 
 }
