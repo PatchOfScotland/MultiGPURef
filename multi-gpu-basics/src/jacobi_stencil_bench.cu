@@ -52,8 +52,6 @@ int main(int argc, char** argv){
     float* arr_1_no_hints;
     float* norm_no_hints;
 
-    const int64_t imageSize = x*y;
-
     cudaError_t e;
 
     cudaMallocManaged(&arr_1_single, x * y * sizeof(float));
