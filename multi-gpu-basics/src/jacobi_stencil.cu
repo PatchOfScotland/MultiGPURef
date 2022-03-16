@@ -295,6 +295,8 @@ namespace multiGPU {
             iter++;
             
         }
+        cudaSetDevice(Device);
+
         return cudaGetLastError();
     }
 
@@ -387,6 +389,7 @@ namespace multiGPU {
             iter++;
             
         }
+        cudaSetDevice(Device);
         return cudaGetLastError();
     }
 
