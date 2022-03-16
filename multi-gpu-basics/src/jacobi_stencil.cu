@@ -421,6 +421,13 @@ namespace multiGPU {
                 rows_per_device_low * w * blockSize;
 
             CUDA_RT_CALL(cudaMemAdvise(
+                norm_d + devID,
+                sizeof(float),
+                cudaMemAdviseSetPreferredLocation,
+                devID
+            ));
+
+            CUDA_RT_CALL(cudaMemAdvise(
                 src + offset, 
                 elems_main_block*sizeof(float), 
                 cudaMemAdviseSetPreferredLocation, 
@@ -462,6 +469,7 @@ namespace multiGPU {
                 cudaMemAdviseSetAccessedBy,
                 devID
             ));
+
 
         }
 
