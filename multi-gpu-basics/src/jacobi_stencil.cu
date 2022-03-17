@@ -556,10 +556,13 @@ namespace multiGPU {
             norm = 0;
             for(int devID = 0; devID < DeviceCount; devID++){
                 cudaSetDevice(devID);
-                cudaMemcpy(norms[devID], &normTemp, sizeof(float), cudaMemcpyDefault);
+                cudaMemcpy(&normTemp, norms[devID], sizeof(float), cudaMemcpyDeviceToHost);
                 norm += normTemp;
             }
             norm = std::sqrt(norm);
+            if(iter % 100 == 0 && false){
+                std::cout << "iter: " << iter <<  " norm: " << norm << "\n";
+            }
             std::swap(src, dst);
             iter++;
             
