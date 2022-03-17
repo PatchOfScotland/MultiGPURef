@@ -552,9 +552,12 @@ namespace multiGPU {
             }
             DeviceSyncronize();
             
+            float normTemp =0;
             norm = 0;
             for(int devID = 0; devID < DeviceCount; devID++){
-                norm += norm_d[devID];
+                cudaSetDevice(devID);
+                cudaMemcpy(norms[devID], &normTemp, sizeof(float), cudaMemcpyDefault);
+                norm += normTemp;
             }
             norm = std::sqrt(norm);
             std::swap(src, dst);
