@@ -453,6 +453,8 @@ namespace multiGPU {
         int DeviceCount;
         cudaGetDeviceCount(&DeviceCount);
 
+        float* norms[DeviceCount];
+
         int iter   = 0;
         float norm = 1.0;
 
@@ -469,15 +471,14 @@ namespace multiGPU {
         const int64_t KernelRowSize = w;
 
         for(int devID = 0; devID < DeviceCount; devID++){
+            cudaSetDevice(devID);
             const int64_t elems_main_block = (devID < highRows) ? 
                 rows_per_device_high * w * blockSize :
                 rows_per_device_low * w * blockSize;
 
-            CUDA_RT_CALL(cudaMemAdvise(
-                norm_d + devID,
-                sizeof(float),
-                cudaMemAdviseSetPreferredLocation,
-                devID
+            CUDA_RT_CALL(cudaMalloc(
+                &norms[devID],
+                sizeof(float)
             ));
 
             CUDA_RT_CALL(cudaMemAdvise(
@@ -522,8 +523,6 @@ namespace multiGPU {
                 cudaMemAdviseSetAccessedBy,
                 devID
             ));
-
-
         }
 
 
@@ -531,7 +530,10 @@ namespace multiGPU {
         const dim3 block(blockSize, blockSize, 1);
 
         while(norm > TOL && iter < MAX_ITER){
-            cudaMemset(norm_d,0, sizeof(float));
+            for(int devID=0; devID < DeviceCount; devID++){
+                cudaSetDevice(devID);
+                cudaMemset(norms[devID],0, sizeof(float));
+            }
 
             int offset = 0;
             for(int devID = 0; devID < DeviceCount; devID++){
@@ -541,7 +543,7 @@ namespace multiGPU {
                 jacobiKernel<blockSize><<<grid, block, shmemSize>>>(
                     src, 
                     dst, 
-                    norm_d + devID, 
+                    norms[devID], 
                     h, 
                     w, 
                     offset
@@ -559,6 +561,11 @@ namespace multiGPU {
             iter++;
             
         }
+        for(int devID=0; devID < DeviceCount; devID++){
+                cudaSetDevice(devID);
+                cudaFree(norms[devID]);
+            }
+
         cudaSetDevice(Device);
 
         return cudaGetLastError();
