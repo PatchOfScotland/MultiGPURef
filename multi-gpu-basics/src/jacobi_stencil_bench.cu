@@ -95,8 +95,8 @@ int main(int argc, char** argv){
 
 
     cudaError_t e;
-
     for(int run = 0; run < ITERATIONS + 1; run++){
+        std::cout << "Starting run: " << run << "\n";
         CUDA_RT_CALL(init_stencil(arr_1_multi, y, x));
         CUDA_RT_CALL(init_stencil(arr_2_multi, y, x));
         CUDA_RT_CALL(init_stencil(arr_1_single, y, x));
