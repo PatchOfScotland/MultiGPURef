@@ -8,6 +8,7 @@
 #include "constants.cu.h"
 #include "helpers.cu.h"
 #include "jacobi_stencil.cu"
+#include "MemoryManagement.cu"
 
 #define OUTPUT_FILE_PATH "data/jacobi_iteration.csv"
 
@@ -42,6 +43,9 @@ int main(int argc, char** argv){
 
     std::ofstream File(OutputFile);
 
+    int DeviceCount;
+    cudaGetDeviceCount(&DeviceCount);
+
     float* arr_1_multi;
     float* arr_2_multi;
     float* norm_multi;
@@ -51,18 +55,16 @@ int main(int argc, char** argv){
     float* arr_2_no_hints;
     float* arr_1_no_hints;
     float* norm_no_hints;
-    float* arr_1_normArr;
-    float* arr_2_normArr;
-    float* norm_normArr; 
-    float* arr_1_no_norm;
-    float* arr_2_no_norm;
+    float* arr_1_noShared;
+    float* arr_2_noShared;
+    float* norm_noShared[DeviceCount]; 
+    float* arr_1_streams;
+    float* arr_2_streams;
+    float* norm_streams[DeviceCount]; 
+
     
 
-    cudaError_t e;
-
-    int DeviceCount;
-    cudaGetDeviceCount(&DeviceCount);
-
+    
     cudaMallocManaged(&arr_1_single, x * y * sizeof(float));
     cudaMallocManaged(&arr_2_single, x * y * sizeof(float));
     cudaMallocManaged(&norm_single, sizeof(float));
@@ -72,36 +74,41 @@ int main(int argc, char** argv){
     cudaMallocManaged(&arr_1_no_hints, x * y * sizeof(float));
     cudaMallocManaged(&arr_2_no_hints, x * y * sizeof(float));
     cudaMallocManaged(&norm_no_hints, sizeof(float));
-    cudaMallocManaged(&arr_1_normArr, x * y * sizeof(float));
-    cudaMallocManaged(&arr_2_normArr, x * y * sizeof(float));
-    cudaMallocManaged(&norm_normArr, DeviceCount*sizeof(float));
-    cudaMallocManaged(&arr_1_no_norm, x * y * sizeof(float));
-    cudaMallocManaged(&arr_2_no_norm, x * y * sizeof(float));
+    cudaMallocManaged(&arr_1_noShared, x * y * sizeof(float));
+    cudaMallocManaged(&arr_2_noShared, x * y * sizeof(float));
+    AllocateDeviceArray<float>(norm_noShared, 1);
+    cudaMallocManaged(&arr_1_streams, x * y * sizeof(float));
+    cudaMallocManaged(&arr_2_streams, x * y * sizeof(float));
+    AllocateDeviceArray<float>(norm_streams, 1);
 
+    //Hints
+    hint2DWithBorder<float>(arr_1_multi,    1, 32, y, x);
+    hint2DWithBorder<float>(arr_2_multi,    1, 32, y, x);
+    hint2DWithBorder<float>(arr_1_single,   1, 32, y, x);
+    hint2DWithBorder<float>(arr_2_single,   1, 32, y, x);
+    hint2DWithBorder<float>(arr_2_no_hints, 1, 32, y, x);
+    hint2DWithBorder<float>(arr_1_no_hints, 1, 32, y, x);
+    hint2DWithBorder<float>(arr_1_noShared, 1, 32, y, x);
+    hint2DWithBorder<float>(arr_2_noShared, 1, 32, y, x);
+    hint2DWithBorder<float>(arr_1_streams,  1, 32, y, x);
+    hint2DWithBorder<float>(arr_2_streams,  1, 32, y, x);
+
+
+    cudaError_t e;
 
     for(int run = 0; run < ITERATIONS + 1; run++){
-        e = init_stencil(arr_1_multi, y, x);
-        CUDA_RT_CALL(e);
-        e = init_stencil(arr_2_multi, y, x);
-        CUDA_RT_CALL(e);
-        e = init_stencil(arr_1_single, y, x);
-        CUDA_RT_CALL(e);
-        e = init_stencil(arr_2_single, y, x);
-        CUDA_RT_CALL(e);
-        e = init_stencil(arr_1_no_hints, y, x);
-        CUDA_RT_CALL(e);
-        e = init_stencil(arr_2_no_hints, y, x);
-        CUDA_RT_CALL(e);
-        e = init_stencil(arr_1_normArr, y, x);
-        CUDA_RT_CALL(e);
-        e = init_stencil(arr_2_normArr, y, x);
-        CUDA_RT_CALL(e);
-        e = init_stencil(arr_1_no_norm, y, x);
-        CUDA_RT_CALL(e);
-        e = init_stencil(arr_2_no_norm, y, x);
-        CUDA_RT_CALL(e);
+        CUDA_RT_CALL(init_stencil(arr_1_multi, y, x));
+        CUDA_RT_CALL(init_stencil(arr_2_multi, y, x));
+        CUDA_RT_CALL(init_stencil(arr_1_single, y, x));
+        CUDA_RT_CALL(init_stencil(arr_2_single, y, x));
+        CUDA_RT_CALL(init_stencil(arr_1_no_hints, y, x));
+        CUDA_RT_CALL(init_stencil(arr_2_no_hints, y, x));
+        CUDA_RT_CALL(init_stencil(arr_1_noShared, y, x));
+        CUDA_RT_CALL(init_stencil(arr_2_noShared, y, x));
+        CUDA_RT_CALL(init_stencil(arr_1_streams, y, x));
+        CUDA_RT_CALL(init_stencil(arr_2_streams, y, x));
 
-        float ms_single, ms_multi, ms_no_hints, ms_normArr, ms_no_norm;
+        float ms_single, ms_multi, ms_no_hints, ms_noShared, ms_streams;
 
         cudaEvent_t start_single;
         cudaEvent_t stop_single;
@@ -110,7 +117,7 @@ int main(int argc, char** argv){
         CUDA_RT_CALL(cudaEventCreate(&stop_single));
 
         CUDA_RT_CALL(cudaEventRecord(start_single));
-        cudaError_t e = singleGPU::jacobi<32>(arr_1_single, arr_2_single, norm_single, y, x);
+        e = singleGPU::jacobi<32>(arr_1_single, arr_2_single, norm_single, y, x);
         CUDA_RT_CALL(e);
         CUDA_RT_CALL(cudaEventRecord(stop_single));
         DeviceSyncronize();
@@ -143,41 +150,41 @@ int main(int argc, char** argv){
         DeviceSyncronize();
         CUDA_RT_CALL(cudaEventElapsedTime(&ms_no_hints, start_no_hints, stop_no_hints));
 
-        cudaEvent_t start_normArr;
-        cudaEvent_t stop_normArr;
+        cudaEvent_t start_noShared;
+        cudaEvent_t stop_noShared;
 
-        CUDA_RT_CALL(cudaEventCreate(&start_normArr));
-        CUDA_RT_CALL(cudaEventCreate(&stop_normArr));
+        CUDA_RT_CALL(cudaEventCreate(&start_noShared));
+        CUDA_RT_CALL(cudaEventCreate(&stop_noShared));
 
-        CUDA_RT_CALL(cudaEventRecord(start_normArr));
-        e = multiGPU::jacobi_normArr<32>(arr_1_normArr, arr_2_normArr, norm_normArr, y, x);
+        CUDA_RT_CALL(cudaEventRecord(start_noShared));
+        e = multiGPU::jacobi_NoSharedMemory<32>(arr_1_noShared, arr_2_noShared, norm_noShared, y, x);
         CUDA_RT_CALL(e);
-        CUDA_RT_CALL(cudaEventRecord(stop_normArr));    
+        CUDA_RT_CALL(cudaEventRecord(stop_noShared));    
         DeviceSyncronize();
-        CUDA_RT_CALL(cudaEventElapsedTime(&ms_normArr, start_normArr, stop_normArr));
+        CUDA_RT_CALL(cudaEventElapsedTime(&ms_noShared, start_noShared, stop_noShared));
 
-        cudaEvent_t start_no_norm;
-        cudaEvent_t stop_no_norm;
+        cudaEvent_t start_streams;
+        cudaEvent_t stop_streams;
 
-        CUDA_RT_CALL(cudaEventCreate(&start_no_norm));
-        CUDA_RT_CALL(cudaEventCreate(&stop_no_norm));
+        CUDA_RT_CALL(cudaEventCreate(&start_streams));
+        CUDA_RT_CALL(cudaEventCreate(&stop_streams));
 
-        CUDA_RT_CALL(cudaEventRecord(start_no_norm));
-        e = multiGPU::jacobi_no_norm<32>(arr_1_no_norm, arr_2_no_norm, y, x);
+        CUDA_RT_CALL(cudaEventRecord(start_streams));
+        e = multiGPU::jacobi_Streams<32>(arr_1_streams, arr_2_streams, norm_streams, y, x);
         CUDA_RT_CALL(e);
-        CUDA_RT_CALL(cudaEventRecord(stop_no_norm));    
+        CUDA_RT_CALL(cudaEventRecord(stop_streams));    
         DeviceSyncronize();
-        CUDA_RT_CALL(cudaEventElapsedTime(&ms_no_norm, start_no_norm, stop_no_norm));
+        CUDA_RT_CALL(cudaEventElapsedTime(&ms_streams, start_streams, stop_streams));
 
         if(File.is_open() && run != 0){
-            File << ms_single << ", " << ms_multi << ", " << ms_no_hints << " " << ms_normArr << " " << ms_no_norm << "\n";
+            File << ms_single << ", " << ms_multi << ", " << ms_no_hints << " " << ms_noShared << " " << ms_streams << "\n";
         }
 
-        cudaEventDestroy(start_no_norm);
-        cudaEventDestroy(stop_no_norm);
+        cudaEventDestroy(start_streams);
+        cudaEventDestroy(stop_streams);
 
-        cudaEventDestroy(start_normArr);
-        cudaEventDestroy(stop_normArr);
+        cudaEventDestroy(start_noShared);
+        cudaEventDestroy(stop_noShared);
 
         cudaEventDestroy(start_no_hints);
         cudaEventDestroy(stop_no_hints);
@@ -201,9 +208,11 @@ int main(int argc, char** argv){
     cudaFree(norm_multi);
     cudaFree(norm_no_hints);
     cudaFree(norm_single);
-    cudaFree(arr_1_normArr);
-    cudaFree(arr_2_normArr);
-    cudaFree(norm_normArr);
+    cudaFree(arr_1_noShared);
+    cudaFree(arr_2_noShared);
+    
+    cudaFree(arr_1_streams);
+    cudaFree(arr_2_streams);
 
 
     return 0;
