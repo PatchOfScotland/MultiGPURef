@@ -8,6 +8,7 @@
 #include "constants.cu.h"
 #include "helpers.cu.h"
 #include "jacobi_stencil.cu"
+#include "MemoryManagement.cu"
 
 template<class T> 
 __global__ void subtract(T* A, T* B, T* C, size_t N){
@@ -60,6 +61,9 @@ int main(int argc, char* argv[]){
 
     EnablePeerAccess();
 
+    int DeviceCount;
+    cudaGetDeviceCount(&DeviceCount);
+
     float* arr_1_multi;
     float* arr_2_multi;
     float* arr_1_emulated;
@@ -69,6 +73,10 @@ int main(int argc, char* argv[]){
     float* norm_multi;
     float* norm_emulated;
     float* norm_single;
+
+    float* noShared_1;
+    float* noShared_2;
+    float* normsNoShared[DeviceCount]; 
 
     const int64_t imageSize = x*y;
 
@@ -84,6 +92,10 @@ int main(int argc, char* argv[]){
     cudaMallocManaged(&norm_emulated, sizeof(float));
     cudaMallocManaged(&norm_single, sizeof(float));
 
+    cudaMallocManaged(&noShared_1,x * y * sizeof(float));
+    cudaMallocManaged(&noShared_2,x * y * sizeof(float));
+    AllocateDeviceArray<float>(normsNoShared, 1);
+
     e = init_stencil(arr_1_multi, y, x);
     CUDA_RT_CALL(e);
     e = init_stencil(arr_2_multi, y, x);
@@ -96,6 +108,9 @@ int main(int argc, char* argv[]){
     CUDA_RT_CALL(e);
     e = init_stencil(arr_2_emulated, y, x);
     CUDA_RT_CALL(e);
+    CUDA_RT_CALL(init_stencil(noShared_1, y, x));
+    CUDA_RT_CALL(init_stencil(noShared_2, y, x));
+
 
     e = singleGPU::jacobi<32>(arr_1_single, arr_2_single,norm_single, y, x);
     CUDA_RT_CALL(e);
@@ -103,6 +118,8 @@ int main(int argc, char* argv[]){
     CUDA_RT_CALL(e);
     e = multiGPU::jacobi_emulated<32>(arr_1_emulated, arr_2_emulated, norm_emulated, y, x, 3);
     CUDA_RT_CALL(e);
+
+    e = multiGPU::jacobi_NoSharedMemory<32>(noShared_1, noShared_2, normsNoShared, y,x);
 
     if(compare_arrays_nummeric<float>(arr_1_multi, arr_1_emulated, imageSize, 1e-8)){
         std::cout << "Emulated is equal to multiGPU\n";
@@ -116,7 +133,11 @@ int main(int argc, char* argv[]){
         std::cout << "Single is not equal to multiGPU\n";
     }
 
-
+    if(compare_arrays_nummeric<float>(arr_1_single, noShared_1, imageSize, 1e-8)){
+        std::cout << "Single is equal to NoShared\n";
+    } else {
+        std::cout << "Single is not equal to NoShared\n";
+    }
 
 
     cudaFree(arr_1_multi);
