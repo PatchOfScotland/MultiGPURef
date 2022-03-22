@@ -57,13 +57,13 @@ int main(int argc, char** argv){
     float* norm_no_hints;
     float* arr_1_noShared;
     float* arr_2_noShared;
-    float* norm_noShared[DeviceCount]; 
+    float** norm_noShared = (float**)malloc(sizeof(float*)*DeviceCount); 
     float* arr_1_streams;
     float* arr_2_streams;
-    float* norm_streams[DeviceCount]; 
+    float* norm_streams = (float**)malloc(sizeof(float*)*DeviceCount); 
 
     
-
+    std::cout << "Allocating memory\n";
     
     cudaMallocManaged(&arr_1_single, x * y * sizeof(float));
     cudaMallocManaged(&arr_2_single, x * y * sizeof(float));
@@ -81,6 +81,7 @@ int main(int argc, char** argv){
     cudaMallocManaged(&arr_2_streams, x * y * sizeof(float));
     AllocateDeviceArray<float>(norm_streams, 1);
 
+    std::cout << "Hinting memory\n";
     //Hints
     hint2DWithBorder<float>(arr_1_multi,    1, 32, y, x);
     hint2DWithBorder<float>(arr_2_multi,    1, 32, y, x);

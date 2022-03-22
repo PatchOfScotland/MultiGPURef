@@ -5,7 +5,7 @@
 
 
 template<class T>
-void AllocateDeviceArray(T* data[], size_t elements){
+void AllocateDeviceArray(T** data, size_t elements){
     int Device, DeviceCount; 
     cudaGetDevice(&Device);
     cudaGetDeviceCount(&DeviceCount);
