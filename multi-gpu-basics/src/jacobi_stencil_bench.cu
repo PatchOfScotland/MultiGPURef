@@ -60,7 +60,7 @@ int main(int argc, char** argv){
     float** norm_noShared = (float**)malloc(sizeof(float*)*DeviceCount); 
     float* arr_1_streams;
     float* arr_2_streams;
-    float* norm_streams = (float**)malloc(sizeof(float*)*DeviceCount); 
+    float** norm_streams = (float**)malloc(sizeof(float*)*DeviceCount); 
 
     
     std::cout << "Allocating memory\n";
