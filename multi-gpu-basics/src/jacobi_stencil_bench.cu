@@ -41,11 +41,15 @@ int main(int argc, char** argv){
     const int y = get_argval<int>(argv, argv + argc, "-y", Y);
     const std::string OutputFile = get_argval<std::string>(argv, argv + argc, "-output", OUTPUT_FILE_PATH);
 
+    std::cout << "Opening file\n";
     std::ofstream File(OutputFile);
 
+    std::cout << "Getting device count\n";
     int DeviceCount;
     cudaGetDeviceCount(&DeviceCount);
 
+
+    std::cout << "Setting Device pointers \n";
     float* arr_1_multi;
     float* arr_2_multi;
     float* norm_multi;
