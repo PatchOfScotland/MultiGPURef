@@ -539,7 +539,7 @@ namespace multiGPU {
         float* norm_d[DeviceCount];
         for(int devID = 0; devID < DeviceCount; devID++){
             cudaSetDevice(devID);
-            CUDA_RT_CALL(cudaMalloc(&norm_d[devID], elements*sizeof(float)));
+            CUDA_RT_CALL(cudaMalloc(&norm_d[devID], sizeof(float)));
         }
 
         int iter   = 0;
@@ -613,7 +613,7 @@ namespace multiGPU {
         float* norm_d[DeviceCount];
         for(int devID = 0; devID < DeviceCount; devID++){
             cudaSetDevice(devID);
-            CUDA_RT_CALL(cudaMalloc(&norm_d[devID], elements*sizeof(float)));
+            CUDA_RT_CALL(cudaMalloc(&norm_d[devID], sizeof(float)));
         }
         cudaSetDevice(Device);        
 
