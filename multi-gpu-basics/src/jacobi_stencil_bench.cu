@@ -37,9 +37,9 @@ bool get_arg(char** begin, char** end, const std::string& arg) {
 
 int main(int argc, char** argv){
 
-    const int x = get_argval<int>(argv, argv + argc, "-x", X);
-    const int y = get_argval<int>(argv, argv + argc, "-y", Y);
-    const std::string OutputFile = get_argval<std::string>(argv, argv + argc, "-output", OUTPUT_FILE_PATH);
+    const int x = 1024;// get_argval<int>(argv, argv + argc, "-x", X);
+    const int y = 1024;//get_argval<int>(argv, argv + argc, "-y", Y);
+    const std::string OutputFile = "data/jacobi_iteration.csv";// get_argval<std::string>(argv, argv + argc, "-output", OUTPUT_FILE_PATH);
 
     std::cout << "Opening file\n";
     std::ofstream File(OutputFile);
