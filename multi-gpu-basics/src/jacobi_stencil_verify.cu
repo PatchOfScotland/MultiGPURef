@@ -116,7 +116,7 @@ int main(int argc, char* argv[]){
     CUDA_RT_CALL(e);
     e = multiGPU::jacobi<32>(arr_1_multi, arr_2_multi, norm_multi, y, x);
     CUDA_RT_CALL(e);
-    e = multiGPU::jacobi_emulated<32>(arr_1_emulated, arr_2_emulated, norm_emulated, y, x, 3);
+    e = multiGPU::jacobi_Streams_emulated<32>(arr_1_emulated, arr_2_emulated, y, x, 3);
     CUDA_RT_CALL(e);
 
     e = multiGPU::jacobi_NoSharedMemory<32>(noShared_1, noShared_2, normsNoShared, y,x);

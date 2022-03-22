@@ -623,9 +623,9 @@ namespace multiGPU {
         
         for(int devID = 0; devID < DeviceCount; devID++){
             cudaSetDevice(devID);
-            cudaStreamCreate(computeStream + devID);
-            cudaEventCreateWithFlags(computeDone[0] + devID, cudaEventDisableTiming);
-            cudaEventCreateWithFlags(computeDone[1] + devID, cudaEventDisableTiming);
+            cudaStreamCreate(&computeStream[devID]);
+            cudaEventCreateWithFlags(&computeDone[0][devID], cudaEventDisableTiming);
+            cudaEventCreateWithFlags(&computeDone[1][devID], cudaEventDisableTiming);
             cudaDeviceSynchronize();
         }
 
@@ -647,7 +647,7 @@ namespace multiGPU {
             int offset = 0;
             for(int devID=0; devID < DeviceCount; devID++){
                 const int top = devID > 0 ? devID - 1 : DeviceCount - 1; 
-                const int bottom = (devID + 1 % DeviceCount);
+                const int bottom = (devID + 1) % DeviceCount;
                 size_t brows = (devID < highRows) ? rows_per_device_high : rows_per_device_low;
                 dim3 grid(colBlocks, brows,1);
 
@@ -685,6 +685,93 @@ namespace multiGPU {
         }
 
         cudaSetDevice(Device);
+        return cudaGetLastError();
+    }
+
+    template<int blockSize>
+    cudaError_t jacobi_Streams_emulated(
+            float* src, 
+            float* dst,
+            const int h, 
+            const int w,
+            const int DeviceCount) { 
+
+        
+        float* norm_d[DeviceCount];
+        for(int devID = 0; devID < DeviceCount; devID++){
+            CUDA_RT_CALL(cudaMalloc(&norm_d[devID], sizeof(float)));
+        }
+        
+
+
+        cudaStream_t computeStream[DeviceCount];
+        cudaEvent_t computeDone[2][32];
+        
+        for(int devID = 0; devID < DeviceCount; devID++){
+        
+            CUDA_RT_CALL(cudaStreamCreate(&computeStream[devID]));
+            CUDA_RT_CALL(cudaEventCreateWithFlags(&computeDone[0][devID], cudaEventDisableTiming));
+            CUDA_RT_CALL(cudaEventCreateWithFlags(&computeDone[1][devID], cudaEventDisableTiming));
+            CUDA_RT_CALL(cudaDeviceSynchronize());
+        }
+
+        int iter   = 0;
+        float norm = 1.0;
+
+        const int rowBlocks = (h % blockSize == 0) ? h / blockSize : h / blockSize + 1;
+        const int colBlocks = (w % blockSize == 0) ? w / blockSize : w / blockSize + 1; 
+        // MemAdvices
+        int rows_per_device_low  = rowBlocks / DeviceCount;
+        int rows_per_device_high = rows_per_device_low + 1;
+        int highRows = rowBlocks % DeviceCount;
+
+        const size_t shmemSize = blockSize*blockSize * sizeof(float);
+        const dim3 block(blockSize, blockSize, 1);
+
+        while(norm > TOL && iter < MAX_ITER){
+
+            int offset = 0;
+            for(int devID=0; devID < DeviceCount; devID++){
+                const int top = devID > 0 ? devID - 1 : DeviceCount - 1; 
+                const int bottom = (devID + 1) % DeviceCount;
+                size_t brows = (devID < highRows) ? rows_per_device_high : rows_per_device_low;
+                dim3 grid(colBlocks, brows,1);
+
+                CUDA_RT_CALL(cudaMemsetAsync(norm_d[devID], 0, sizeof(float), computeStream[devID]));
+                CUDA_RT_CALL(cudaStreamWaitEvent(computeStream[devID], computeDone[iter % 2][top], 0));
+                CUDA_RT_CALL(cudaStreamWaitEvent(computeStream[devID], computeDone[iter % 2][bottom], 0));
+
+                jacobiKernel<blockSize><<<grid, block, shmemSize, computeStream[devID]>>>(
+                    src, dst, norm_d[devID], h, w, offset
+                );
+                CUDA_RT_CALL(cudaGetLastError());
+                CUDA_RT_CALL(cudaEventRecord(computeDone[(iter + 1) % 2][devID], computeStream[devID]));
+                offset += brows;
+            }
+            
+            float normTemps[DeviceCount];
+            norm = 0;
+            for(int devID = 0; devID < DeviceCount; devID++){
+                CUDA_RT_CALL(cudaMemcpyAsync(normTemps + devID, norm_d[devID], sizeof(float), cudaMemcpyDeviceToHost, 0));
+            }
+
+            for(int devID = 0; devID < DeviceCount; devID++){
+                CUDA_RT_CALL(cudaStreamSynchronize(computeStream[devID]));
+            }
+
+            for(int idx = 0; idx < DeviceCount; idx++){
+                norm += normTemps[idx];
+            }
+
+            norm = std::sqrt(norm);
+            if(iter % 100 == 0){
+                std::cout << "iter: " << iter <<  " norm: " << norm << "\n";
+            }
+            std::swap(src, dst);
+            iter++;   
+            
+        }
+
         return cudaGetLastError();
     }
 }
