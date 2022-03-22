@@ -37,19 +37,19 @@ bool get_arg(char** begin, char** end, const std::string& arg) {
 
 int main(int argc, char** argv){
 
-    const int x = 1024;// get_argval<int>(argv, argv + argc, "-x", X);
-    const int y = 1024;//get_argval<int>(argv, argv + argc, "-y", Y);
-    const std::string OutputFile = "data/jacobi_iteration.csv";// get_argval<std::string>(argv, argv + argc, "-output", OUTPUT_FILE_PATH);
+    const int x = get_argval<int>(argv, argv + argc, "-x", X);
+    const int y = get_argval<int>(argv, argv + argc, "-y", Y);
+    const std::string OutputFile = get_argval<std::string>(argv, argv + argc, "-output", OUTPUT_FILE_PATH);
 
-    std::cout << "Opening file\n";
+    
     std::ofstream File(OutputFile);
 
-    std::cout << "Getting device count\n";
+    
     int DeviceCount;
     cudaGetDeviceCount(&DeviceCount);
 
 
-    std::cout << "Setting Device pointers \n";
+    
     float* arr_1_multi;
     float* arr_2_multi;
     float* norm_multi;
@@ -67,7 +67,7 @@ int main(int argc, char** argv){
     float** norm_streams = (float**)malloc(sizeof(float*)*DeviceCount); 
 
     
-    std::cout << "Allocating memory\n";
+
     
     cudaMallocManaged(&arr_1_single, x * y * sizeof(float));
     cudaMallocManaged(&arr_2_single, x * y * sizeof(float));
@@ -85,7 +85,7 @@ int main(int argc, char** argv){
     cudaMallocManaged(&arr_2_streams, x * y * sizeof(float));
     AllocateDeviceArray<float>(norm_streams, 1);
 
-    std::cout << "Hinting memory\n";
+    
     //Hints
     hint2DWithBorder<float>(arr_1_multi,    1, 32, y, x);
     hint2DWithBorder<float>(arr_2_multi,    1, 32, y, x);
@@ -101,7 +101,6 @@ int main(int argc, char** argv){
 
     cudaError_t e;
     for(int run = 0; run < ITERATIONS + 1; run++){
-        std::cout << "Starting run: " << run << "\n";
         CUDA_RT_CALL(init_stencil(arr_1_multi, y, x));
         CUDA_RT_CALL(init_stencil(arr_2_multi, y, x));
         CUDA_RT_CALL(init_stencil(arr_1_single, y, x));

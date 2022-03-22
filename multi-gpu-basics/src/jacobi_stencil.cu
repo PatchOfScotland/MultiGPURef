@@ -530,11 +530,17 @@ namespace multiGPU {
 
 
     template<int blockSize>
-    cudaError_t jacobi_NoSharedMemory(float* src, float* dst, float* norm_d[], const int h, const int w){
+    cudaError_t jacobi_NoSharedMemory(float* src, float* dst, float* norm_ds[], const int h, const int w){
         int Device;
         cudaGetDevice(&Device);
         int DeviceCount;
         cudaGetDeviceCount(&DeviceCount);
+
+        float* norm_d[DeviceCount];
+        for(int devID = 0; devID < DeviceCount; devID++){
+            cudaSetDevice(devID);
+            CUDA_RT_CALL(cudaMalloc(&norm_d[devID], elements*sizeof(float)));
+        }
 
         int iter   = 0;
         float norm = 1.0;
@@ -595,7 +601,7 @@ namespace multiGPU {
     cudaError_t jacobi_Streams(
             float* src, 
             float* dst, 
-            float* norm_d[],
+            float* norm_ds[],
             const int h, 
             const int w){
 
@@ -603,6 +609,14 @@ namespace multiGPU {
         cudaGetDevice(&Device);
         int DeviceCount;
         cudaGetDeviceCount(&DeviceCount);
+
+        float* norm_d[DeviceCount];
+        for(int devID = 0; devID < DeviceCount; devID++){
+            cudaSetDevice(devID);
+            CUDA_RT_CALL(cudaMalloc(&norm_d[devID], elements*sizeof(float)));
+        }
+        cudaSetDevice(Device);        
+
 
         cudaStream_t computeStream[DeviceCount];
         cudaEvent_t computeDone[2][DeviceCount];
