@@ -774,6 +774,99 @@ namespace multiGPU {
 
         return cudaGetLastError();
     }
+
+
+    template<int blockSize>
+    cudaError_t jacobi_Streams_NoShared(
+            float* src, 
+            float* dst, 
+            float* norm_ds[],
+            const int h, 
+            const int w){
+
+        int Device;
+        cudaGetDevice(&Device);
+        int DeviceCount;
+        cudaGetDeviceCount(&DeviceCount);
+
+        float* norm_d[DeviceCount];
+        for(int devID = 0; devID < DeviceCount; devID++){
+            cudaSetDevice(devID);
+            CUDA_RT_CALL(cudaMalloc(&norm_d[devID], sizeof(float)));
+        }
+        cudaSetDevice(Device);        
+
+
+        cudaStream_t computeStream[DeviceCount];
+        cudaEvent_t computeDone[2][DeviceCount];
+        
+        for(int devID = 0; devID < DeviceCount; devID++){
+            cudaSetDevice(devID);
+            cudaStreamCreate(&computeStream[devID]);
+            cudaEventCreateWithFlags(&computeDone[0][devID], cudaEventDisableTiming);
+            cudaEventCreateWithFlags(&computeDone[1][devID], cudaEventDisableTiming);
+            cudaDeviceSynchronize();
+        }
+
+        int iter   = 0;
+        float norm = 1.0;
+
+        const int rowBlocks = (h % blockSize == 0) ? h / blockSize : h / blockSize + 1;
+        const int colBlocks = (w % blockSize == 0) ? w / blockSize : w / blockSize + 1; 
+        // MemAdvices
+        int rows_per_device_low  = rowBlocks / DeviceCount;
+        int rows_per_device_high = rows_per_device_low + 1;
+        int highRows = rowBlocks % DeviceCount;
+
+        const size_t shmemSize = blockSize*blockSize * sizeof(float);
+        const dim3 block(blockSize, blockSize, 1);
+
+        while(norm > TOL && iter < MAX_ITER){
+
+            int offset = 0;
+            for(int devID=0; devID < DeviceCount; devID++){
+                const int top = devID > 0 ? devID - 1 : DeviceCount - 1; 
+                const int bottom = (devID + 1) % DeviceCount;
+                size_t brows = (devID < highRows) ? rows_per_device_high : rows_per_device_low;
+                dim3 grid(colBlocks, brows,1);
+
+                cudaSetDevice(devID);
+                cudaMemsetAsync(norm_d[devID], 0, sizeof(float), computeStream[devID]);
+                cudaStreamWaitEvent(computeStream[devID], computeDone[iter % 2][top],0);
+                cudaStreamWaitEvent(computeStream[devID], computeDone[iter % 2][bottom],0);
+
+                jacobiKernelNoSharedMemory<blockSize><<<grid, block, shmemSize, computeStream[devID]>>>(
+                    src, dst, norm_d[devID], h, w, offset
+                );
+                cudaEventRecord(computeDone[(iter + 1) % 2][devID], computeStream[devID]);
+                offset += brows;
+            }
+            
+            float normTemps[DeviceCount];
+            norm = 0;
+            for(int devID = 0; devID < DeviceCount; devID++){
+                cudaSetDevice(devID);
+                cudaMemcpyAsync(normTemps + devID, norm_d[devID], sizeof(float), cudaMemcpyDeviceToHost, computeStream[devID]);
+            }
+
+            for(int devID = 0; devID < DeviceCount; devID++){
+                cudaSetDevice(devID);
+                cudaStreamSynchronize(computeStream[devID]);
+            }
+
+            for(int idx = 0; idx < DeviceCount; idx++){
+                norm += normTemps[idx];
+            }
+
+            norm = std::sqrt(norm);
+            std::swap(src, dst);
+            iter++;   
+        }
+
+        cudaSetDevice(Device);
+        return cudaGetLastError();
+    }
+
 }
 
 
