@@ -10,7 +10,7 @@
 #include "scan.cu"
 
 
-#define DEFAULT_N 1e9
+#define DEFAULT_N 5e8
 #define DEFAULT_OUTPUTFILE "data/scan_bench.csv"
 
 typedef int funcType;
@@ -113,7 +113,7 @@ int main(int argc, char* argv[]) {
         CUDA_RT_CALL(cudaEventCreate(&stop_MD));
 
         CUDA_RT_CALL(cudaEventRecord(start_MD));
-        scanWrapper< Add <funcType> >(device_data_out, device_data_in, N, flags, aggregates, inc_prefix);
+        scanInc< Add < funcType > >(1024, N, data_out_single, data_in, data_tmp);
         CUDA_RT_CALL(cudaEventRecord(stop_MD));
         DeviceSyncronize();
         CUDA_RT_CALL(cudaEventElapsedTime(&ms_MD, start_MD, stop_MD));
