@@ -71,7 +71,7 @@ int main(int argc, char* argv[]) {
     init_array_cpu<funcType>(data_in, 1337, N);
     cudaMemcpy(device_data_in, data_in, N*sizeof(funcType), cudaMemcpyDefault);
 
-    
+    DeviceSyncronize();    
 
     for(int run = 0; run < ITERATIONS + 1; run++){
         float ms_single, ms_2pass, ms_MD;
