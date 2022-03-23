@@ -4,6 +4,14 @@
 #define ITERATIONS 25
 #define BLOCKSIZE 256
 #define EPSILON 1e-5
+#define ELEMS_PER_THREAD    9
+#define DEBUG_INFO true
+
+__device__ uint32_t counter = 0;
+
+typedef unsigned int uint32_t;
+typedef int           int32_t;
+
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -58,5 +66,27 @@ void EnablePeerAccess(){
   }
 }
 
+uint32_t MAX_HWDTH;
+uint32_t MAX_BLOCK;
+uint32_t MAX_SHMEM;
+
+cudaDeviceProp prop;
+
+void initHwd() {
+    int nDevices;
+    cudaGetDeviceCount(&nDevices);
+    cudaGetDeviceProperties(&prop, 0);
+    MAX_HWDTH = prop.maxThreadsPerMultiProcessor * prop.multiProcessorCount;
+    MAX_BLOCK = prop.maxThreadsPerBlock;
+    MAX_SHMEM = prop.sharedMemPerBlock;
+
+    if (DEBUG_INFO) {
+        printf("Device name: %s\n", prop.name);
+        printf("Number of hardware threads: %d\n", MAX_HWDTH);
+        printf("Max block size: %d\n", MAX_BLOCK);
+        printf("Shared memory size: %d\n", MAX_SHMEM);
+        puts("====");
+    }
+}
 
 #endif
