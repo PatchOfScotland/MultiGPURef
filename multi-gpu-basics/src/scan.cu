@@ -1331,13 +1331,12 @@ void scanInc_multiDevice( const uint32_t     B     // desired CUDA block size ( 
     //
     for(int devID = 0; devID < DeviceCount; devID++){
       cudaSetDevice(devID);
-      
       redAssocKernelMultiDevice<OP, CHUNK><<< BlockPerDevice, B, shmem_size >>>(d_tmp, d_in, N, num_seq_chunks, devID);
       cudaEventRecord(syncEvent[devID]);
     }
-    cudaSetDevice(Device);
+    cudaSetDevice(Device); 
     for(int devID = 0; devID < DeviceCount; devID++){
-      cudaStreamWaitEvent(0, syncEvent[devID],0)
+      cudaStreamWaitEvent(0, syncEvent[devID], 0);
     }
 
     {
