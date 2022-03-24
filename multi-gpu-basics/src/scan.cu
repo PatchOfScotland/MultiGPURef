@@ -1304,6 +1304,18 @@ void scanInc_multiDevice( const uint32_t     B     // desired CUDA block size ( 
     int DeviceCount;
     cudaGetDeviceCount(&DeviceCount);
 
+    cudaStream_t scanStreams[DeviceCount];
+    cudaEvent_t syncEvent[DeviceCount];
+    cudaEvent_t scan1blockEvent;
+
+    cudaEventCreateWithFlags(&scan1blockEvent, cudaEventDisableTiming);
+
+    for(int devID = 0; devID < DeviceCount; devID++){
+      cudaSetDevice(devID);
+      cudaEventCreateWithFlags(&syncEvent[devID], cudaEventDisableTiming);
+      cudaStreamCreate(&scanStreams[devID]);
+    }
+
 
     const uint32_t inp_sz = sizeof(typename OP::InpElTp);
     const uint32_t red_sz = sizeof(typename OP::RedElTp);
@@ -1314,23 +1326,31 @@ void scanInc_multiDevice( const uint32_t     B     // desired CUDA block size ( 
     const size_t   shmem_size = B * max_tp_size * CHUNK;
     const uint32_t BlockPerDevice = num_blocks / DeviceCount + 1;
 
+
+
     //
     for(int devID = 0; devID < DeviceCount; devID++){
       cudaSetDevice(devID);
+      
       redAssocKernelMultiDevice<OP, CHUNK><<< BlockPerDevice, B, shmem_size >>>(d_tmp, d_in, N, num_seq_chunks, devID);
-
+      cudaEventRecord(syncEvent[devID]);
     }
-    DeviceSyncronize();
+    cudaSetDevice(Device);
+    for(int devID = 0; devID < DeviceCount; devID++){
+      cudaStreamWaitEvent(0, syncEvent[devID],0)
+    }
 
     {
         const uint32_t block_size = closestMul32(num_blocks);
         const size_t shmem_size = block_size * sizeof(typename OP::RedElTp);
         scan1Block<OP><<< 1, block_size, shmem_size>>>(d_tmp, num_blocks);
+        cudaEventRecord(scan1blockEvent);
     }
-    DeviceSyncronize();
+    
 
     for(int devID = 0; devID < DeviceCount; devID++){
       cudaSetDevice(devID);
+      cudaStreamWaitEvent(0, scan1blockEvent, 0);
       scan3rdKernelMultiDevice<OP, CHUNK><<< num_blocks, B, shmem_size >>>(d_out, d_in, d_tmp, N, num_seq_chunks, devID);
     }
     cudaSetDevice(Device);
