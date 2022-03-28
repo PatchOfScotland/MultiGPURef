@@ -1306,9 +1306,6 @@ void scanInc_multiDevice( const uint32_t     B     // desired CUDA block size ( 
     int DeviceCount;
     cudaGetDeviceCount(&DeviceCount);
 
-    
-
-
     const uint32_t inp_sz = sizeof(typename OP::InpElTp);
     const uint32_t red_sz = sizeof(typename OP::RedElTp);
     const uint32_t max_tp_size = (inp_sz > red_sz) ? inp_sz : red_sz;
