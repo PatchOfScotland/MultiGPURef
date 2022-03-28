@@ -1298,7 +1298,7 @@ void scanInc_multiDevice( const uint32_t     B     // desired CUDA block size ( 
             , typename OP::InpElTp* d_in  // device array of length: N
             , typename OP::RedElTp* d_tmp // device array of max length: MAX_BLOCK
             , cudaEvent_t syncEvent[]
-            , cudaEvent_t scan1Block
+            , cudaEvent_t scan1BlockEvent
             
 ) {
     int Device;
