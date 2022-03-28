@@ -41,6 +41,7 @@ int main(int argc, char* argv[]) {
     std::ofstream File(outputFile);
 
     initHwd();
+    EnablePeerAccess();
 
     int DeviceCount;
     cudaGetDeviceCount(&DeviceCount);

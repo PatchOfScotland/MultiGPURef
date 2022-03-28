@@ -46,6 +46,8 @@ int main(int argc, char** argv){
     int DeviceCount;
     cudaGetDeviceCount(&DeviceCount);
     
+    EnablePeerAccess();
+
     float* arr_1_multi;
     float* arr_2_multi;
     float* norm_multi;
