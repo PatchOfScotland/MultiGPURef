@@ -1335,13 +1335,13 @@ void scanInc_multiDevice( const uint32_t     B     // desired CUDA block size ( 
         const uint32_t block_size = closestMul32(num_blocks);
         const size_t shmem_size = block_size * sizeof(typename OP::RedElTp);
         scan1Block<OP><<< 1, block_size, shmem_size>>>(d_tmp, num_blocks);
-        cudaEventRecord(scan1blockEvent);
+        cudaEventRecord(scan1BlockEvent);
     }
     
 
     for(int devID = 0; devID < DeviceCount; devID++){
       cudaSetDevice(devID);
-      cudaStreamWaitEvent(0, scan1blockEvent, 0);
+      cudaStreamWaitEvent(0, scan1BlockEvent, 0);
       scan3rdKernelMultiDevice<OP, CHUNK><<< num_blocks, B, shmem_size >>>(d_out, d_in, d_tmp, N, num_seq_chunks, devID);
     }
     cudaSetDevice(Device);
