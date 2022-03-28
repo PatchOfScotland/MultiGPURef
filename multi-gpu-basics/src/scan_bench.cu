@@ -10,7 +10,7 @@
 #include "scan.cu"
 
 
-#define DEFAULT_N 5e8
+#define DEFAULT_N 1e8
 #define DEFAULT_OUTPUTFILE "data/scan_bench.csv"
 
 typedef int funcType;
