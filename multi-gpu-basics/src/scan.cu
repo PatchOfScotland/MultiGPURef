@@ -1297,6 +1297,8 @@ void scanInc_multiDevice( const uint32_t     B     // desired CUDA block size ( 
             , typename OP::RedElTp* d_out // device array of length: N
             , typename OP::InpElTp* d_in  // device array of length: N
             , typename OP::RedElTp* d_tmp // device array of max length: MAX_BLOCK
+            , cudaEvent_t syncEvent[]
+            , cudaEvent_t scan1Block
             
 ) {
     int Device;
@@ -1304,17 +1306,7 @@ void scanInc_multiDevice( const uint32_t     B     // desired CUDA block size ( 
     int DeviceCount;
     cudaGetDeviceCount(&DeviceCount);
 
-    cudaStream_t scanStreams[DeviceCount];
-    cudaEvent_t syncEvent[DeviceCount];
-    cudaEvent_t scan1blockEvent;
-
-    cudaEventCreateWithFlags(&scan1blockEvent, cudaEventDisableTiming);
-
-    for(int devID = 0; devID < DeviceCount; devID++){
-      cudaSetDevice(devID);
-      cudaEventCreateWithFlags(&syncEvent[devID], cudaEventDisableTiming);
-      cudaStreamCreate(&scanStreams[devID]);
-    }
+    
 
 
     const uint32_t inp_sz = sizeof(typename OP::InpElTp);

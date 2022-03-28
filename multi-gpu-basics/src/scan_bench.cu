@@ -63,6 +63,16 @@ int main(int argc, char* argv[]) {
     funcType* inc_prefix;
     uint8_t*  flags;
     
+    cudaEvent_t syncEvent[DeviceCount];
+    cudaEvent_t scan1BlockEvent;
+
+    cudaEventCreateWithFlags(&scan1blockEvent, cudaEventDisableTiming);
+
+    for(int devID = 0; devID < DeviceCount; devID++){
+      cudaSetDevice(devID);
+      cudaEventCreateWithFlags(&syncEvent[devID], cudaEventDisableTiming);
+    }
+
 
     cudaMalloc(&device_data_in, N*sizeof(funcType));
     cudaMalloc(&device_data_out, N*sizeof(funcType));
@@ -113,7 +123,7 @@ int main(int argc, char* argv[]) {
         CUDA_RT_CALL(cudaEventCreate(&stop_MD));
 
         CUDA_RT_CALL(cudaEventRecord(start_MD));
-        scanInc_multiDevice< Add < funcType > >(1024, N, data_out_single, data_in, data_tmp);
+        scanInc_multiDevice< Add < funcType > >(1024, N, data_out_single, data_in, data_tmp, syncEvent, scan1BlockEvent);
         CUDA_RT_CALL(cudaEventRecord(stop_MD));
         DeviceSyncronize();
         CUDA_RT_CALL(cudaEventElapsedTime(&ms_MD, start_MD, stop_MD));
