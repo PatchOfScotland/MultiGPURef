@@ -37,6 +37,8 @@ const char* program = "extern \"C\" __global__ void mapFunction(                
 
 
 
+
+
 int main(int argc, char** argv){
     
 
@@ -48,8 +50,7 @@ int main(int argc, char** argv){
     const u_int BlockSize = 1024;
     const u_int NumBlocks = (N + BlockSize - 1) / BlockSize;
     const int BlocksPerDevice = NumBlocks / DeviceCount + 1;
-
-    printf("%d\n",BlocksPerDevice);
+    const size_t bufferSize = N*sizeof(int);
 
     CUmodule module;
     CUcontext CurrentContext;
@@ -64,6 +65,7 @@ int main(int argc, char** argv){
 
     for(int devID = 0; devID < DeviceCount; devID++){
         CUDA_SAFE_CALL(cuDeviceGet(&devices[devID], devID));
+
         CUDA_SAFE_CALL(cuCtxCreate(&contexts[devID], CU_CTX_SCHED_AUTO, devices[devID]));
         CUDA_SAFE_CALL(cuStreamCreate(&streams[devID], CU_STREAM_DEFAULT));
         CUDA_SAFE_CALL(cuEventCreate(&BenchmarkEvents[devID*2] ,CU_EVENT_DEFAULT)); // Start Event
@@ -86,22 +88,41 @@ int main(int argc, char** argv){
 
     CUdeviceptr mem_in, mem_out;
     #if UNIFIED
-    CUDA_SAFE_CALL(cuMemAllocManaged(&mem_in, N*sizeof(int),CU_MEM_ATTACH_GLOBAL));
-    CUDA_SAFE_CALL(cuMemAllocManaged(&mem_out, N*sizeof(int),CU_MEM_ATTACH_GLOBAL));
+    CUDA_SAFE_CALL(cuMemAllocManaged(&mem_in,  bufferSize, CU_MEM_ATTACH_GLOBAL));
+    CUDA_SAFE_CALL(cuMemAllocManaged(&mem_out, bufferSize, CU_MEM_ATTACH_GLOBAL));
     #else
-    CUDA_SAFE_CALL(cuMemAlloc(&mem_in, N*sizeof(int)));
-    CUDA_SAFE_CALL(cuMemAlloc(&mem_out, N*sizeof(int)));
+    CUDA_SAFE_CALL(cuMemAlloc(&mem_in, bufferSize));
+    CUDA_SAFE_CALL(cuMemAlloc(&mem_out, bufferSize));
     #endif
 
-    int* hostData = (int*)malloc(N*sizeof(int));
-    int* destData = (int*)malloc(N*sizeof(int));
+    int* destData = (int*)malloc(N*sizeof(int));    
 
+    #if UNIFIED
+    int* hostData = (int*)mem_in;
     for(int i = 0; i < N; i++){
         hostData[i] = i;
     }
-
+    #else
+    int* hostData = (int*)malloc(N*sizeof(int));
+    for(int i = 0; i < N; i++){
+        hostData[i] = i;
+    }
     CUDA_SAFE_CALL(cuMemcpyHtoD(mem_in, hostData, N*sizeof(int)));
+    #endif
 
+
+    #if UNIFIED
+    for(int devID = 0; devID < DeviceCount; devID++){
+        const size_t ElemsPerDevice = BlocksPerDevice*BlockSize;
+        const size_t offset = ElemsPerDevice * devID;
+        const size_t ElementsToPrefetch = (offset + ElemsPerDevice < N) ? ElemsPerDevice : N - offset;
+        CUDA_SAFE_CALL(cuMemPrefetchAsync(mem_in + offset, ElementsToPrefetch*sizeof(int), devices[devID], streams[devID]));
+    } 
+    for(int devID = 0; devID < DeviceCount; devID++){
+        CUDA_SAFE_CALL(cuStreamSynchronize(streams[devID]));
+    }
+
+    #endif
 
 
     for(int run = 0; run < GPU_RUNS; run++){
@@ -111,7 +132,7 @@ int main(int argc, char** argv){
             CUDA_SAFE_CALL(cuEventRecord(BenchmarkEvents[devID*2], streams[devID]));
             CUDA_SAFE_CALL(cuLaunchKernel(Kernels[0], 
                 BlocksPerDevice, 1, 1, 
-                1024, 1 ,1 , 
+                BlockSize, 1 ,1 , 
                 0, streams[devID], 
                 args, 0
             ));
@@ -128,7 +149,7 @@ int main(int argc, char** argv){
     CUDA_SAFE_CALL(cuMemcpyDtoH(destData, mem_out, N*sizeof(int)));
 
     for(int i = 0; i < N; i++){
-        if(destData[i] == hostData[i]){
+        if(destData[i] != hostData[i] + 1){
             printf("Error at Index :%d\n", i);
         }
     }
