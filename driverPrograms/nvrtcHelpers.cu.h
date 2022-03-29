@@ -43,7 +43,7 @@ void compileFunctions(
     for(int devID = 0; devID < DeviceCount; devID++){
         CUDA_SAFE_CALL(cuCtxSetCurrent(contexts[devID]));
         for(int funcIdx = 0; funcIdx < functionCount; funcIdx++){
-            CUDA_SAFE_CALL(cuModuleGetFunction(&functions[funcIdx], modules[devID], functionNames[funcIdx]));
+            CUDA_SAFE_CALL(cuModuleGetFunction(&functions[devID*functionCount + funcIdx], modules[devID], functionNames[funcIdx]));
         }   
     }
     

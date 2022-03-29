@@ -15,7 +15,7 @@
 #include "nvrtcHelpers.cu.h"
 #include "constants.cu.h"
 
-#define ARRAY_LENGTH 1e8
+#define ARRAY_LENGTH 1e9
 #define GPU_RUNS 25
 #define DEBUG
 #define UNIFIED 1
@@ -52,7 +52,7 @@ int main(int argc, char** argv){
     CUcontext* contexts = (CUcontext*)malloc(sizeof(CUcontext)*DeviceCount);
     CUstream* streams   = (CUstream*)malloc(sizeof(CUstream)*DeviceCount);
     CUevent*  BenchmarkEvents = (CUevent*)malloc(sizeof(CUevent)*DeviceCount*2);
-    CUfunction* Kernels = (CUfunction*)malloc(sizeof(CUfunction)); 
+    CUfunction* Kernels = (CUfunction*)malloc(sizeof(CUfunction)*DeviceCount); 
 
     for(int devID = 0; devID < DeviceCount; devID++){
         CUDA_SAFE_CALL(cuDeviceGet(&devices[devID], devID));
@@ -115,7 +115,7 @@ int main(int argc, char** argv){
             CUDA_SAFE_CALL(cuCtxSetCurrent(contexts[devID]));
             void *args[] = {&mem_in, &mem_out, &N, &devID};
             CUDA_SAFE_CALL(cuEventRecord(BenchmarkEvents[devID*2], streams[devID]));
-            CUDA_SAFE_CALL(cuLaunchKernel(Kernels[0], 
+            CUDA_SAFE_CALL(cuLaunchKernel(Kernels[devID], 
                 BlocksPerDevice, 1, 1, 
                 BlockSize, 1 ,1 , 
                 0, streams[devID], 
