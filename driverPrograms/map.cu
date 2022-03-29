@@ -79,7 +79,7 @@ int main(int argc, char** argv){
     if (CurrentContext != contexts[DeviceCount - 1]) printf("Current context is not equal to last created context\n");
 
 
-    CUfunction* Kernels = malloc(sizeof(CUfunction)); 
+    CUfunction* Kernels = (CUfunction*)malloc(sizeof(CUfunction)); 
     char** functionNames = (char**)malloc(sizeof(char*));
     char* functionName_1 = "mapFunction";
     functionNames[0] = functionName_1;
