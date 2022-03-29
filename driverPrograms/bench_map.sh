@@ -5,7 +5,7 @@
 #SBATCH --mem=10000m
 #SBATCH -p gpu --gres=gpu:titanrtx:4
 
-nvcc map.c -lcuda -lnvrtc -o map -O3 -std=c++11 -arch=sm_61
+nvcc map.c -lcuda -lnvrtc -o map -O3 -std=c99 -arch=sm_61
 
 ./map >> data/mapDriver_4.csv
 
