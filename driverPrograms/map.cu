@@ -35,13 +35,7 @@ const char* program = "extern \"C\" __global__ void mapFunction(                
 }\n";
 
 
-
-
-
-
 int main(int argc, char** argv){
-    
-
     cuInit(0);
     int DeviceCount;
     cuDeviceGetCount(&DeviceCount);
@@ -52,38 +46,28 @@ int main(int argc, char** argv){
     const int BlocksPerDevice = NumBlocks / DeviceCount + 1;
     const size_t bufferSize = N*sizeof(int);
 
-    CUmodule module;
-    CUcontext CurrentContext;
+    
+    CUmodule* modules   = (CUmodule*)malloc(sizeof(CUmodule)*DeviceCount);
     CUdevice* devices   = (CUdevice*)malloc(sizeof(CUdevice)*DeviceCount);
     CUcontext* contexts = (CUcontext*)malloc(sizeof(CUcontext)*DeviceCount);
     CUstream* streams   = (CUstream*)malloc(sizeof(CUstream)*DeviceCount);
     CUevent*  BenchmarkEvents = (CUevent*)malloc(sizeof(CUevent)*DeviceCount*2);
-
-    cuCtxGetCurrent(&CurrentContext);
-
-    if (CurrentContext != NULL) printf("Current Context is not null\n");
+    CUfunction* Kernels = (CUfunction*)malloc(sizeof(CUfunction)); 
 
     for(int devID = 0; devID < DeviceCount; devID++){
         CUDA_SAFE_CALL(cuDeviceGet(&devices[devID], devID));
         CUDA_SAFE_CALL(cuCtxCreate(&contexts[devID], CU_CTX_SCHED_AUTO, devices[devID])); // This Automaticly set the device
+        CUDA_SAFE_CALL(cuCtxSetCurrent(contexts[devID]));
         CUDA_SAFE_CALL(cuStreamCreate(&streams[devID], CU_STREAM_DEFAULT));
         CUDA_SAFE_CALL(cuEventCreate(&BenchmarkEvents[devID*2] ,CU_EVENT_DEFAULT)); // Start Event
         CUDA_SAFE_CALL(cuEventCreate(&BenchmarkEvents[devID*2 + 1] ,CU_EVENT_DEFAULT)); // Stop Event
     }
 
-    cuCtxGetCurrent(&CurrentContext);
-
-    if (CurrentContext == NULL) printf("Current Context is null\n");
-    
-    if (CurrentContext != contexts[DeviceCount - 1]) printf("Current context is not equal to last created context\n");
-
-
-    CUfunction* Kernels = (CUfunction*)malloc(sizeof(CUfunction)); 
     char** functionNames = (char**)malloc(sizeof(char*));
     char* functionName_1 = "mapFunction";
     functionNames[0] = functionName_1;
 
-    compileFunctions(program, functionNames, Kernels, 1, &module);
+    compileFunctions(program, functionNames, Kernels, 1, modules, contexts, DeviceCount);
 
     CUdeviceptr mem_in, mem_out;
     #if UNIFIED
@@ -158,7 +142,10 @@ int main(int argc, char** argv){
 
     
     // Free data
-    cuModuleUnload(module);
+    for(int devID = 0; devID < DeviceCount; devID++){
+        CUDA_SAFE_CALL(cuCtxSetCurrent(contexts[devID]));
+        cuModuleUnload(modules[devID]);
+    }
 
     for(int devID = 0; devID < DeviceCount; devID++){
         CUDA_SAFE_CALL(cuCtxSetCurrent(contexts[devID]));
