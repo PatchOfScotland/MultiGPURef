@@ -128,8 +128,12 @@ int main(int argc, char** argv){
             CUDA_SAFE_CALL(cuCtxSetCurrent(contexts[devID]));
             CUDA_SAFE_CALL(cuStreamSynchronize(streams[devID]));
             CUDA_SAFE_CALL(cuEventElapsedTime(&runTimes[devID], BenchmarkEvents[devID*2], BenchmarkEvents[devID*2 + 1]));
-            printf("%f\n", runTimes[devID]);
         }
+        float maxRuntime = 0.0;
+        for(int devID = 0; devID < DeviceCount; devID++){
+            maxRuntime = max(maxRuntime, runTimes[devID]);
+        }
+        printf("%f\n", maxRuntime);
     }
 
     CUDA_SAFE_CALL(cuMemcpyDtoH(destData, mem_out, N*sizeof(int)));
