@@ -226,6 +226,7 @@ int main(int argc, char** argv){
     
     
     // Free data
+    /*
     CUDA_SAFE_CALL(cuMemFree(mem_1));
     CUDA_SAFE_CALL(cuMemFree(mem_2));
 
@@ -238,6 +239,7 @@ int main(int argc, char** argv){
         CUDA_SAFE_CALL(cuMemFree(norms[devID]));
         CUDA_SAFE_CALL(cuModuleUnload(modules[devID]));
     }
+    free(norms); 
 
     for(int devID = 0; devID < DeviceCount; devID++){
         CUDA_SAFE_CALL(cuCtxSetCurrent(contexts[devID]));
@@ -251,13 +253,10 @@ int main(int argc, char** argv){
     
     free(Kernels);
     free(functionNames);
-    
-    free(norms); 
-
     free(streams);
     free(contexts);
     free(devices);
-
+    */
 
 
 }
