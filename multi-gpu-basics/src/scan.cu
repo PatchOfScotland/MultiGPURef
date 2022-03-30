@@ -1339,7 +1339,7 @@ void scanInc_multiDevice( const uint32_t     B     // desired CUDA block size ( 
     for(int devID = 0; devID < DeviceCount; devID++){
       cudaSetDevice(devID);
       cudaStreamWaitEvent(0, scan1BlockEvent, 0);
-      scan3rdKernelMultiDevice<OP, CHUNK><<< num_blocks, B, shmem_size >>>(d_out, d_in, d_tmp, N, num_seq_chunks, devID);
+      scan3rdKernelMultiDevice<OP, CHUNK><<< BlockPerDevice, B, shmem_size >>>(d_out, d_in, d_tmp, N, num_seq_chunks, devID);
     }
     cudaSetDevice(Device);
 }
