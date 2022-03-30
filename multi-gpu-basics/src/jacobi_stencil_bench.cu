@@ -56,12 +56,12 @@ int main(int argc, char** argv){
     float* norm_single;
     float* arr_2_streamsNoShared;
     float* arr_1_streamsNoShared;
-    float** norm_streamsNoShared = (float**)malloc(sizeof(float*)*DeviceCount);
     float* arr_1_noShared;
     float* arr_2_noShared;
-    float** norm_noShared = (float**)malloc(sizeof(float*)*DeviceCount); 
     float* arr_1_streams;
     float* arr_2_streams;
+    float** norm_streamsNoShared = (float**)malloc(sizeof(float*)*DeviceCount);
+    float** norm_noShared = (float**)malloc(sizeof(float*)*DeviceCount); 
     float** norm_streams = (float**)malloc(sizeof(float*)*DeviceCount);    
 
     
@@ -73,12 +73,12 @@ int main(int argc, char** argv){
     cudaMallocManaged(&norm_multi, sizeof(float));
     cudaMallocManaged(&arr_1_streamsNoShared, x * y * sizeof(float));
     cudaMallocManaged(&arr_2_streamsNoShared, x * y * sizeof(float));
-    cudaMallocManaged(&norm_streamsNoShared, sizeof(float));
     cudaMallocManaged(&arr_1_noShared, x * y * sizeof(float));
     cudaMallocManaged(&arr_2_noShared, x * y * sizeof(float));
-    AllocateDeviceArray<float>(norm_noShared, 1);
     cudaMallocManaged(&arr_1_streams, x * y * sizeof(float));
     cudaMallocManaged(&arr_2_streams, x * y * sizeof(float));
+    AllocateDeviceArray<float>(norm_streamsNoShared, 1);
+    AllocateDeviceArray<float>(norm_noShared, 1);
     AllocateDeviceArray<float>(norm_streams, 1);
 
     
@@ -155,7 +155,9 @@ int main(int argc, char** argv){
         e = multiGPU::jacobi_Streams_NoShared<32>(
             arr_1_streamsNoShared, 
             arr_2_streamsNoShared, 
-            norm_streamsNoShared, y, x);
+            norm_streamsNoShared, 
+            y, 
+            x);
         CUDA_RT_CALL(e);
         CUDA_RT_CALL(cudaEventRecord(stop_streamsNoShared));    
         DeviceSyncronize();
@@ -168,7 +170,13 @@ int main(int argc, char** argv){
         CUDA_RT_CALL(cudaEventCreate(&stop_noShared));
 
         CUDA_RT_CALL(cudaEventRecord(start_noShared));
-        e = multiGPU::jacobi_NoSharedMemory<32>(arr_1_noShared, arr_2_noShared, norm_noShared, y, x);
+        e = multiGPU::jacobi_NoSharedMemory<32>(
+            arr_1_noShared, 
+            arr_2_noShared, 
+            norm_noShared, 
+            y, 
+            x
+        );
         CUDA_RT_CALL(e);
         CUDA_RT_CALL(cudaEventRecord(stop_noShared));    
         DeviceSyncronize();
@@ -181,7 +189,14 @@ int main(int argc, char** argv){
         CUDA_RT_CALL(cudaEventCreate(&stop_streams));
 
         CUDA_RT_CALL(cudaEventRecord(start_streams));
-        e = multiGPU::jacobi_Streams<32>(arr_1_streams, arr_2_streams, norm_streams, y, x, computeEvent);
+        e = multiGPU::jacobi_Streams<32>(
+            arr_1_streams, 
+            arr_2_streams, 
+            norm_streams, 
+            y, 
+            x, 
+            computeEvent
+        );
         CUDA_RT_CALL(e);
         CUDA_RT_CALL(cudaEventRecord(stop_streams));    
         DeviceSyncronize();

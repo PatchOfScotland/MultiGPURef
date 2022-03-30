@@ -485,7 +485,7 @@ namespace multiGPU {
     }
 
     template<int blockSize>
-    cudaError_t jacobi_no_norm(float* src, float* dst,  const int h, const int w){
+    cudaError_t jacobi_no_norm(float* src, float* dst, const int h, const int w){
         int Device;
         cudaGetDevice(&Device);
         int DeviceCount;
@@ -532,17 +532,17 @@ namespace multiGPU {
 
 
     template<int blockSize>
-    cudaError_t jacobi_NoSharedMemory(float* src, float* dst, float* norm_ds[], const int h, const int w){
+    cudaError_t jacobi_NoSharedMemory(
+            float* src, 
+            float* dst, 
+            float** norm_d, 
+            const int h, 
+            const int w
+        ){
         int Device;
         cudaGetDevice(&Device);
         int DeviceCount;
         cudaGetDeviceCount(&DeviceCount);
-
-        float* norm_d[DeviceCount];
-        for(int devID = 0; devID < DeviceCount; devID++){
-            cudaSetDevice(devID);
-            CUDA_RT_CALL(cudaMalloc(&norm_d[devID], sizeof(float)));
-        }
 
         int iter   = 0;
         float norm = 1.0;
@@ -603,7 +603,7 @@ namespace multiGPU {
     cudaError_t jacobi_Streams(
             float* src, 
             float* dst, 
-            float* norm_ds,
+            float** norm_d,
             const int h, 
             const int w,
             cudaEvent_t* computeDone // Array of Length 2*Dev
@@ -766,7 +766,7 @@ namespace multiGPU {
     cudaError_t jacobi_Streams_NoShared(
             float* src, 
             float* dst, 
-            float* norm_ds[],
+            float** norm_d,
             const int h, 
             const int w){
 
@@ -775,14 +775,7 @@ namespace multiGPU {
         int DeviceCount;
         cudaGetDeviceCount(&DeviceCount);
 
-        float* norm_d[DeviceCount];
-        for(int devID = 0; devID < DeviceCount; devID++){
-            cudaSetDevice(devID);
-            CUDA_RT_CALL(cudaMalloc(&norm_d[devID], sizeof(float)));
-        }
-        cudaSetDevice(Device);        
-
-
+        
         cudaStream_t computeStream[DeviceCount];
         cudaEvent_t computeDone[2][DeviceCount];
         

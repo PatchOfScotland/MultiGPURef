@@ -11,7 +11,7 @@ void AllocateDeviceArray(T** data, size_t elements){
     cudaGetDeviceCount(&DeviceCount);
     for(int devID = 0; devID < DeviceCount; devID++){
         cudaSetDevice(devID);
-        CUDA_RT_CALL(cudaMalloc(&data[devID], elements*sizeof(T)));
+        CUDA_RT_CALL(cudaMalloc(data + devID, elements*sizeof(T)));
     }
     cudaSetDevice(Device);
 }
