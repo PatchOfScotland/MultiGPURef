@@ -267,6 +267,8 @@ namespace multiGPU {
             const float local_norm = powf(src[y * w + x] - newValue, 2);
 
             scanMem[threadIdx.y * blockDim.x + threadIdx.x] = local_norm;
+            __syncthreads();
+            scanIncBlock<Add<float> >(scanMem, threadIdx.y * blockDim.x + threadIdx.x);
             if(threadIdx.x == 0 && threadIdx.y == 0){
                 atomicAdd_system(norm, scanMem[blockDim.x * blockDim.y - 1]);
             }
@@ -601,34 +603,18 @@ namespace multiGPU {
     cudaError_t jacobi_Streams(
             float* src, 
             float* dst, 
-            float* norm_ds[],
+            float* norm_ds,
             const int h, 
-            const int w){
+            const int w,
+            cudaEvent_t* computeDone // Array of Length 2*Dev
+        ){ 
 
         int Device;
         cudaGetDevice(&Device);
         int DeviceCount;
         cudaGetDeviceCount(&DeviceCount);
 
-        float* norm_d[DeviceCount];
-        for(int devID = 0; devID < DeviceCount; devID++){
-            cudaSetDevice(devID);
-            CUDA_RT_CALL(cudaMalloc(&norm_d[devID], sizeof(float)));
-        }
-        cudaSetDevice(Device);        
-
-
-        cudaStream_t computeStream[DeviceCount];
-        cudaEvent_t computeDone[2][DeviceCount];
         
-        for(int devID = 0; devID < DeviceCount; devID++){
-            cudaSetDevice(devID);
-            cudaStreamCreate(&computeStream[devID]);
-            cudaEventCreateWithFlags(&computeDone[0][devID], cudaEventDisableTiming);
-            cudaEventCreateWithFlags(&computeDone[1][devID], cudaEventDisableTiming);
-            cudaDeviceSynchronize();
-        }
-
         int iter   = 0;
         float norm = 1.0;
 
@@ -652,14 +638,14 @@ namespace multiGPU {
                 dim3 grid(colBlocks, brows,1);
 
                 cudaSetDevice(devID);
-                cudaMemsetAsync(norm_d[devID], 0, sizeof(float), computeStream[devID]);
-                cudaStreamWaitEvent(computeStream[devID], computeDone[iter % 2][top],0);
-                cudaStreamWaitEvent(computeStream[devID], computeDone[iter % 2][bottom],0);
+                cudaMemsetAsync(norm_d[devID], 0, sizeof(float), 0);
+                cudaStreamWaitEvent(0, computeDone[top*2 + (iter % 2)],0);
+                cudaStreamWaitEvent(0, computeDone[bottom*2 + (iter % 2)],0);
 
-                jacobiKernel<blockSize><<<grid, block, shmemSize, computeStream[devID]>>>(
+                jacobiKernel<blockSize><<<grid, block, shmemSize, 0>>>(
                     src, dst, norm_d[devID], h, w, offset
                 );
-                cudaEventRecord(computeDone[(iter + 1) % 2][devID], computeStream[devID]);
+                cudaEventRecord(computeDone[devID*2 + (iter + 1) % 2], 0);
                 offset += brows;
             }
             
@@ -667,12 +653,12 @@ namespace multiGPU {
             norm = 0;
             for(int devID = 0; devID < DeviceCount; devID++){
                 cudaSetDevice(devID);
-                cudaMemcpyAsync(normTemps + devID, norm_d[devID], sizeof(float), cudaMemcpyDeviceToHost, computeStream[devID]);
+                cudaMemcpyAsync(normTemps + devID, norm_d[devID], sizeof(float), cudaMemcpyDeviceToHost, 0);
             }
 
             for(int devID = 0; devID < DeviceCount; devID++){
                 cudaSetDevice(devID);
-                cudaStreamSynchronize(computeStream[devID]);
+                cudaStreamSynchronize(0);
             }
 
             for(int idx = 0; idx < DeviceCount; idx++){

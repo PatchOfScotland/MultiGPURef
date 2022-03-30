@@ -94,6 +94,14 @@ int main(int argc, char** argv){
     hint2DWithBorder<float>(arr_1_streams,  1, 32, y, x);
     hint2DWithBorder<float>(arr_2_streams,  1, 32, y, x);
 
+    cudaEvent_t* computeEvent = (cudaEvent_t*)malloc(sizeof(cudaEvent_t)*2*DeviceCount);
+
+    for(int devID = 0; devID < DeviceCount; devID++){
+        cudaSetDevice(devID);
+        CUDA_RT_CALL(cudaEventCreateWithFlags(&computeEvent[devID*2], cudaEventDisableTiming));
+        CUDA_RT_CALL(cudaEventCreateWithFlags(&computeEvent[devID*2 + 1], cudaEventDisableTiming));
+    }
+
 
     cudaError_t e;
     for(int run = 0; run < ITERATIONS + 1; run++){
@@ -173,7 +181,7 @@ int main(int argc, char** argv){
         CUDA_RT_CALL(cudaEventCreate(&stop_streams));
 
         CUDA_RT_CALL(cudaEventRecord(start_streams));
-        e = multiGPU::jacobi_Streams<32>(arr_1_streams, arr_2_streams, norm_streams, y, x);
+        e = multiGPU::jacobi_Streams<32>(arr_1_streams, arr_2_streams, norm_streams, y, x, computeDone);
         CUDA_RT_CALL(e);
         CUDA_RT_CALL(cudaEventRecord(stop_streams));    
         DeviceSyncronize();
@@ -201,6 +209,13 @@ int main(int argc, char** argv){
     }
 
     File.close();
+
+    for(int devID = 0; devID < DeviceCount; devID++){
+        cudaSetDevice(devID);
+        cudaEventDestroy(computeEvent[devID*2]);
+        cudaEventDestroy(computeEvent[devID*2 + 1]);
+    }
+
 
     cudaFree(arr_1_multi);
     cudaFree(arr_2_multi);
