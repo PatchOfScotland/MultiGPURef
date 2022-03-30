@@ -64,7 +64,7 @@ int main(int argc, char** argv){
     }
 
     char** functionNames = (char**)malloc(sizeof(char*));
-    char* functionName_1 = "mapFunction";
+    char functionName_1[] = "mapFunction";
     functionNames[0] = functionName_1;
 
     compileFunctions(program, functionNames, Kernels, 1, modules, contexts, DeviceCount);
@@ -73,28 +73,11 @@ int main(int argc, char** argv){
     #if UNIFIED
     CUDA_SAFE_CALL(cuMemAllocManaged(&mem_in,  bufferSize, CU_MEM_ATTACH_GLOBAL));
     CUDA_SAFE_CALL(cuMemAllocManaged(&mem_out, bufferSize, CU_MEM_ATTACH_GLOBAL));
-    #else
-    CUDA_SAFE_CALL(cuMemAlloc(&mem_in, bufferSize));
-    CUDA_SAFE_CALL(cuMemAlloc(&mem_out, bufferSize));
-    #endif
-
-    int* destData = (int*)malloc(N*sizeof(int));    
-
-    #if UNIFIED
     int* hostData = (int*)mem_in; //You can do this, which looks horrible
     for(int i = 0; i < N; i++){
         hostData[i] = i;
     }
-    #else
-    int* hostData = (int*)malloc(N*sizeof(int));
-    for(int i = 0; i < N; i++){
-        hostData[i] = i;
-    }
-    CUDA_SAFE_CALL(cuMemcpyHtoD(mem_in, hostData, N*sizeof(int)));
-    #endif
 
-
-    #if UNIFIED
     for(int devID = 0; devID < DeviceCount; devID++){
         CUDA_SAFE_CALL(cuCtxSetCurrent(contexts[devID]));
         const size_t ElemsPerDevice = BlocksPerDevice*BlockSize;
@@ -102,16 +85,23 @@ int main(int argc, char** argv){
         const size_t ElementsToPrefetch = (offset + ElemsPerDevice < N) ? ElemsPerDevice : N - offset;
         CUDA_SAFE_CALL(cuMemPrefetchAsync(mem_in + offset, ElementsToPrefetch*sizeof(int), devices[devID], streams[devID]));
     } 
+
     for(int devID = 0; devID < DeviceCount; devID++){
         CUDA_SAFE_CALL(cuStreamSynchronize(streams[devID]));
     }
-
+    #else
+    CUDA_SAFE_CALL(cuMemAlloc(&mem_in, bufferSize));
+    CUDA_SAFE_CALL(cuMemAlloc(&mem_out, bufferSize));
+    int* destData = (int*)malloc(N*sizeof(int));    
+    int* hostData = (int*)malloc(N*sizeof(int));
+    for(int i = 0; i < N; i++){
+        hostData[i] = i;
+    }
+    CUDA_SAFE_CALL(cuMemcpyHtoD(mem_in, hostData, N*sizeof(int)));
     #endif
 
-
-    for(int run = 0; run < GPU_RUNS; run++){
-        
-    for(int devID = 0; devID < DeviceCount; devID++){
+    for(int run = 0; run < GPU_RUNS; run++){    
+        for(int devID = 0; devID < DeviceCount; devID++){
             CUDA_SAFE_CALL(cuCtxSetCurrent(contexts[devID]));
             void *args[] = {&mem_in, &mem_out, &N, &devID};
             CUDA_SAFE_CALL(cuEventRecord(BenchmarkEvents[devID*2], streams[devID]));
@@ -146,6 +136,9 @@ int main(int argc, char** argv){
 
     
     // Free data
+    CUDA_SAFE_CALL(cuMemFree(mem_in));
+    CUDA_SAFE_CALL(cuMemFree(mem_out));
+
     for(int devID = 0; devID < DeviceCount; devID++){
         CUDA_SAFE_CALL(cuCtxSetCurrent(contexts[devID]));
         cuModuleUnload(modules[devID]);

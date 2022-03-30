@@ -17,7 +17,8 @@ void compileFunctions(
     ){
     nvrtcProgram kernelProgram; 
     NVRTC_SAFE_CALL(nvrtcCreateProgram(&kernelProgram, program, NULL, 0, NULL, NULL));
-    NVRTC_SAFE_CALL(nvrtcCompileProgram(kernelProgram, 0, NULL)); 
+    const char* opts[] = {"-arch=sm_61"};
+    NVRTC_SAFE_CALL(nvrtcCompileProgram(kernelProgram, 1, opts)); 
     size_t logSize;
     NVRTC_SAFE_CALL(nvrtcGetProgramLogSize(kernelProgram, &logSize));
 
@@ -26,6 +27,7 @@ void compileFunctions(
         NVRTC_SAFE_CALL(nvrtcGetProgramLog(kernelProgram, log));
         printf("%s\n", log);
         free(log);
+        exit(1);
     }
 
     size_t ptxSize;
