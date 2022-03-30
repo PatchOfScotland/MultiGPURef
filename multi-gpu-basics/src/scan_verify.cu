@@ -34,7 +34,8 @@ bool get_arg(char** begin, char** end, const std::string& arg) {
 }
 
 int main(int argc, char* argv[]) {
-    const int64_t N = get_argval<int>(argv, argv + argc, "-x", DEFAULT_N);
+    const int64_t N = get_argval<int>(argv, argv + argc, "-n", DEFAULT_N);
+    const int64_t B = get_argval<int>(argv, argv + argc, "-b", 1024);
     const std::string outputFile = get_argval<std::string>(argv, argv + argc, "-output", DEFAULT_OUTPUTFILE);
     int*  blockCounter; 
 
@@ -149,11 +150,23 @@ int main(int argc, char* argv[]) {
     DeviceSyncronize();
     cudaMemcpy(data_host_d, data_out_d, N*sizeof(funcType), cudaMemcpyDeviceToHost);
 
-    DeviceSyncronize();
-    scanInc_emulated<Add< funcType > >(1024, N, data_simple_um_out_emulated, data_in, data_simple_um_tmp_emulated, EmulatedDeviceCount);
-    DeviceSyncronize();
+    cudaEvent_t  Block2Event;
+    CUDA_RT_CALL(cudaEventCreateWithFlags(&Block2Event, cudaEventDisableTiming));
 
-    scanInc_multiDevice<Add< funcType > >(1024, N, data_simple_um_out_MD, data_in, data_simple_um_tmp_MD);
+    CUDA_RT_CALL(scanInc_emulated<Add< funcType > >(1024, N, data_simple_um_out_emulated, data_in, data_simple_um_tmp_emulated, EmulatedDeviceCount));
+    DeviceSyncronize();
+    
+
+    cudaEvent_t* Block1Events = (cudaEvent_t*)malloc(sizeof(cudaEvent_t)*DeviceCount);
+    
+    for(int devID = 0; devID < DeviceCount; devID++){
+        CUDA_RT_CALL(cudaSetDevice(devID));
+        CUDA_RT_CALL(cudaEventCreateWithFlags(&Block1Events[devID], cudaEventDisableTiming));
+    }
+    cudaSetDevice(0);
+
+
+    scanInc_multiDevice<Add< funcType > >(B, N, data_simple_um_out_MD, data_in, data_simple_um_tmp_MD, Block1Events, Block2Event);
 
 
 

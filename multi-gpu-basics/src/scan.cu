@@ -1118,7 +1118,7 @@ scan3rdKernelMultiDevice ( typename OP::RedElTp* d_out
 
     // accumulator updated at each iteration of the "virtualization"
     //   loop so we remember the prefix for the current elements.
-    typename OP::RedElTp accum = (blockIdx.x == 0) ? OP::identity() : d_tmp[blockIdx.x-1];
+    typename OP::RedElTp accum = (blockIdx.x == 0 && devID == 0) ? OP::identity() : d_tmp[gridDim.x * devID + blockIdx.x-1];
 
     // register memory for storing the scanned elements.
     typename OP::RedElTp chunk[CHUNK];
@@ -1276,7 +1276,6 @@ void scanInc_emulated( const uint32_t     B     // desired CUDA block size ( <= 
     //
     for(int devID = 0; devID < EmulatedDevices; devID++){
       redAssocKernelMultiDevice<OP, CHUNK><<< BlockPerDevice, B, shmem_size >>>(d_tmp, d_in, N, num_seq_chunks, devID);
-
     }
 
     {
@@ -1284,9 +1283,8 @@ void scanInc_emulated( const uint32_t     B     // desired CUDA block size ( <= 
         const size_t shmem_size = block_size * sizeof(typename OP::RedElTp);
         scan1Block<OP><<< 1, block_size, shmem_size>>>(d_tmp, num_blocks);
     }
-    
     for(int devID = 0; devID < EmulatedDevices; devID++){
-      scan3rdKernelMultiDevice<OP, CHUNK><<< num_blocks, B, shmem_size >>>(d_out, d_in, d_tmp, N, num_seq_chunks, devID);
+      scan3rdKernelMultiDevice<OP, CHUNK><<< BlockPerDevice, B, shmem_size >>>(d_out, d_in, d_tmp, N, num_seq_chunks, devID); 
     }
 }
 
