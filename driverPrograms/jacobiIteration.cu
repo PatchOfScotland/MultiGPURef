@@ -113,6 +113,7 @@ int main(int argc, char** argv){
         CUDA_SAFE_CALL(cuEventCreate(&ComputeDoneEvents[devID*2 + 1] ,CU_EVENT_DEFAULT)); // Stop Event
     }
 
+    CUDA_SAFE_CALL(cuCtxSetCurrent(contexts[0]));
     CUDA_SAFE_CALL(cuEventCreate(&BenchmarkEvents[0] , CU_EVENT_DEFAULT)); // Start Event
     CUDA_SAFE_CALL(cuEventCreate(&BenchmarkEvents[1],CU_EVENT_DEFAULT)); // Stop Event
 
