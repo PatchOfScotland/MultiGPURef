@@ -181,7 +181,7 @@ int main(int argc, char** argv){
         CUDA_RT_CALL(cudaEventCreate(&stop_streams));
 
         CUDA_RT_CALL(cudaEventRecord(start_streams));
-        e = multiGPU::jacobi_Streams<32>(arr_1_streams, arr_2_streams, norm_streams, y, x, computeDone);
+        e = multiGPU::jacobi_Streams<32>(arr_1_streams, arr_2_streams, norm_streams, y, x, computeEvent);
         CUDA_RT_CALL(e);
         CUDA_RT_CALL(cudaEventRecord(stop_streams));    
         DeviceSyncronize();
