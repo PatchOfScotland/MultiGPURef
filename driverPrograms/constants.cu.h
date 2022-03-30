@@ -32,7 +32,7 @@
     if (result != NVRTC_SUCCESS) {                                \
         const char* msg = nvrtcGetErrorString(result);            \
       fprintf(stderr,                                             \
-        "ERROR: CUDA RT call in line %d of file %s failed "       \
+        "ERROR: NVRTC RT call in line %d of file %s failed "       \
         "with "                                                   \
         "%s (%d).\n",                                             \
         __LINE__, __FILE__, msg, result);                         \

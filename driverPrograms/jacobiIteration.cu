@@ -16,7 +16,7 @@
 #include "constants.cu.h"
 
 #define X 4096
-#define Y 4096
+#define Y 4096  
 #define GPU_RUNS 25
 #define MAX_ITER 1000
 #define TOL 1e-8
