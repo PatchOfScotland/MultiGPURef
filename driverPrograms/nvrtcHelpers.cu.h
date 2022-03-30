@@ -17,7 +17,7 @@ void compileFunctions(
     ){
     nvrtcProgram kernelProgram; 
     NVRTC_SAFE_CALL(nvrtcCreateProgram(&kernelProgram, program, NULL, 0, NULL, NULL));
-    const char* opts[] = {"-arch=compute_61"};
+    const char* opts[] = {"--gpu-architecture=compute_61"};
     NVRTC_SAFE_CALL(nvrtcCompileProgram(kernelProgram, 1, opts)); 
     size_t logSize;
     NVRTC_SAFE_CALL(nvrtcGetProgramLogSize(kernelProgram, &logSize));
