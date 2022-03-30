@@ -229,6 +229,10 @@ int main(int argc, char** argv){
     CUDA_SAFE_CALL(cuMemFree(mem_1));
     CUDA_SAFE_CALL(cuMemFree(mem_2));
 
+    CUDA_SAFE_CALL(cuCtxSetCurrent(contexts[0]));
+    CUDA_SAFE_CALL(cuEventDestroy(BenchmarkEvents[0]));
+    CUDA_SAFE_CALL(cuEventDestroy(BenchmarkEvents[1]));
+        
     for(int devID = 0; devID < DeviceCount; devID++){
         CUDA_SAFE_CALL(cuCtxSetCurrent(contexts[devID]));
         CUDA_SAFE_CALL(cuMemFree(norms[devID]));
@@ -237,8 +241,8 @@ int main(int argc, char** argv){
 
     for(int devID = 0; devID < DeviceCount; devID++){
         CUDA_SAFE_CALL(cuCtxSetCurrent(contexts[devID]));
-        CUDA_SAFE_CALL(cuEventDestroy(BenchmarkEvents[devID*2]));
-        CUDA_SAFE_CALL(cuEventDestroy(BenchmarkEvents[devID*2 + 1]));
+        CUDA_SAFE_CALL(cuEventDestroy(ComputeDoneEvents[devID*2]));
+        CUDA_SAFE_CALL(cuEventDestroy(ComputeDoneEvents[devID*2 + 1]));
         CUDA_SAFE_CALL(cuStreamDestroy(streams[devID])); //Destroy Streams first
         CUDA_SAFE_CALL(cuCtxDestroy(contexts[devID]));
     }
