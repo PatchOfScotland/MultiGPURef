@@ -47,7 +47,7 @@ int main(int argc, char* argv[]) {
     EnablePeerAccess();
 
     int Device; 
-    cudaGetDevice(&Device)
+    cudaGetDevice(&Device);
     int DeviceCount;
     cudaGetDeviceCount(&DeviceCount);
 
