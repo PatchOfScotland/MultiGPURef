@@ -217,6 +217,8 @@ cudaError_t scanIncVoidArgsMD(void* args[]){
             
     int Device;
     cudaGetDevice(&Device);
+    std::cout << "Start Device:" << Device << "\n";
+        
     int DeviceCount;
     cudaGetDeviceCount(&DeviceCount);
 
@@ -239,6 +241,7 @@ cudaError_t scanIncVoidArgsMD(void* args[]){
       CUDA_RT_CALL(cudaEventRecord(syncEvent[devID]));
     }
     cudaSetDevice(Device); 
+
     for(int devID = 0; devID < DeviceCount; devID++){
       CUDA_RT_CALL(cudaStreamWaitEvent(0, syncEvent[devID], 0));
     }
@@ -248,6 +251,9 @@ cudaError_t scanIncVoidArgsMD(void* args[]){
         const size_t shmem_size = block_size * sizeof(typename OP::RedElTp);
         scan1Block<OP><<< 1, block_size, shmem_size>>>(d_tmp, num_blocks);
         CUDA_RT_CALL(cudaGetLastError());
+        int newDev;
+        cudaGetDevice(&newDev);
+        std::cout << "Device:" << newDev << "\n";
         CUDA_RT_CALL(cudaEventRecord(scan1BlockEvent));
     }
     
