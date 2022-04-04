@@ -153,7 +153,7 @@ int main(int argc, char* argv[]) {
     cudaEvent_t  Block2Event;
     CUDA_RT_CALL(cudaEventCreateWithFlags(&Block2Event, cudaEventDisableTiming));
 
-    CUDA_RT_CALL(scanInc_emulated<Add< funcType > >(1024, N, data_simple_um_out_emulated, data_in, data_simple_um_tmp_emulated, EmulatedDeviceCount));
+    scanInc_emulated<Add< funcType > >(1024, N, data_simple_um_out_emulated, data_in, data_simple_um_tmp_emulated, EmulatedDeviceCount);
     DeviceSyncronize();
     
 

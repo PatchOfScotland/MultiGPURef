@@ -1342,6 +1342,4 @@ void scanInc_multiDevice( const uint32_t     B     // desired CUDA block size ( 
     cudaSetDevice(Device);
 }
 
-
-
 #endif

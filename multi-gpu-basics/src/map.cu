@@ -171,6 +171,20 @@ namespace singleGPU {
 
 
     template<class MapFunc>
+    __global__ void MapGPUChucks(
+        typename MapFunc::InpElTp* input,
+        typename MapFunc::RedElTp* output,
+        size_t N
+    ){
+        for(size_t idx = blockDim.x*blockIdx.x + threadIdx.x; idx < N; idx += blockDim.x * gridDim.x){        
+            if (idx < N) {
+                output[idx] = MapFunc::apply(input[idx]);
+            }
+        }
+    }
+
+
+    template<class MapFunc>
     cudaError_t ApplyMap(
         typename MapFunc::InpElTp* input,
         typename MapFunc::RedElTp* output,
@@ -180,7 +194,33 @@ namespace singleGPU {
         MapGPU< MapFunc ><<<num_blocks, BLOCKSIZE >>>(input, output, N);
         return cudaGetLastError();
     }
-}
 
+
+    /**
+     * @brief Args:
+     *  typename MapFunc::InpElTp input array
+     *  typename MapFunc::InpElTp output array
+     *  size_t N Size of array
+     * 
+     */
+    template<class MapFunc>
+    cudaError_t ApplyMapVoidArgs(void* args[]){
+        typedef typename MapFunc::InpElTp T1;
+        typedef typename MapFunc::RedElTp T2;
+        T1* input = *(T1**)args[0];
+        T2* output = *(T2**)args[1];
+        size_t N = *(size_t*)args[2];
+        
+        size_t blockSize = 1024;
+
+        size_t num_blocks = MAX_HWDTH / blockSize;
+
+        MapGPUChucks< MapFunc ><<<num_blocks, blockSize >>>(input, output, N);
+        
+        return cudaGetLastError();
+    }
+
+    
+}
 
 #endif

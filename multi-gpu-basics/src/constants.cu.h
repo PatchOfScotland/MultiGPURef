@@ -7,11 +7,11 @@
 #define ELEMS_PER_THREAD    9
 #define DEBUG_INFO true
 
-__device__ uint32_t counter = 0;
 
 typedef unsigned int uint32_t;
 typedef int           int32_t;
 
+__device__ uint32_t counter = 0;
 
 #include <stdio.h>
 #include <stdlib.h>
