@@ -46,6 +46,8 @@ int main(int argc, char* argv[]) {
     initHwd();
     EnablePeerAccess();
 
+    int Device; 
+    cudaGetDevice(&Device)
     int DeviceCount;
     cudaGetDeviceCount(&DeviceCount);
 
@@ -66,6 +68,7 @@ int main(int argc, char* argv[]) {
       cudaSetDevice(devID);
       cudaEventCreateWithFlags(&syncEvent[devID], cudaEventDisableTiming);
     }
+    cudaSetDevice(Device);
 
     init_array_cpu<funcType>(data_in, 1337, N);
     DeviceSyncronize();    
