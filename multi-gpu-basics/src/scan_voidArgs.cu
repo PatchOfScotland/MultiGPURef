@@ -233,26 +233,29 @@ cudaError_t scanIncVoidArgsMD(void* args[]){
     
     
     for(int devID = 0; devID < DeviceCount; devID++){
-      cudaSetDevice(devID);
+      CUDA_RT_CALL(cudaSetDevice(devID));
       redAssocKernelMultiDevice<OP, CHUNK><<< BlockPerDevice, blockSize, shmem_size >>>(d_tmp, d_in, N, num_seq_chunks, devID);
-      cudaEventRecord(syncEvent[devID]);
+      CUDA_RT_CALL(cudaGetLastError());
+      CUDA_RT_CALL(cudaEventRecord(syncEvent[devID]));
     }
     cudaSetDevice(Device); 
     for(int devID = 0; devID < DeviceCount; devID++){
-      cudaStreamWaitEvent(0, syncEvent[devID], 0);
+      CUDA_RT_CALL(cudaStreamWaitEvent(0, syncEvent[devID], 0));
     }
 
     {
         const uint32_t block_size = closestMul32(num_blocks);
         const size_t shmem_size = block_size * sizeof(typename OP::RedElTp);
         scan1Block<OP><<< 1, block_size, shmem_size>>>(d_tmp, num_blocks);
-        cudaEventRecord(scan1BlockEvent);
+        CUDA_RT_CALL(cudaGetLastError());
+        CUDA_RT_CALL(cudaEventRecord(scan1BlockEvent));
     }
     
     for(int devID = 0; devID < DeviceCount; devID++){
-      cudaSetDevice(devID);
-      cudaStreamWaitEvent(0, scan1BlockEvent, 0);
+      CUDA_RT_CALL(cudaSetDevice(devID));
+      CUDA_RT_CALL(cudaStreamWaitEvent(0, scan1BlockEvent, 0));
       scan3rdKernelMultiDevice<OP, CHUNK><<< BlockPerDevice, blockSize, shmem_size >>>(d_out, d_in, d_tmp, N, num_seq_chunks, devID);
+      CUDA_RT_CALL(cudaGetLastError());
     }
     cudaSetDevice(Device);
     return cudaGetLastError();
@@ -282,11 +285,12 @@ cudaError_t scanIncVoidArgs(
 
     //
     redAssocKernel<OP, CHUNK><<< num_blocks, B, shmem_size >>>(d_tmp, d_in, N, num_seq_chunks);
-
+    CUDA_RT_CALL(cudaGetLastError());
     {
         const uint32_t block_size = closestMul32(num_blocks);
         const size_t shmem_size = block_size * sizeof(typename OP::RedElTp);
         scan1Block<OP><<< 1, block_size, shmem_size>>>(d_tmp, num_blocks);
+        CUDA_RT_CALL(cudaGetLastError());
     }
 
     scan3rdKernel<OP, CHUNK><<< num_blocks, B, shmem_size >>>(d_out, d_in, d_tmp, N, num_seq_chunks);
@@ -339,12 +343,13 @@ cudaError_t scanIncVoidArgsMDPS(void* args[]){
       cudaSetDevice(devID);
       redAssocKernelMultiDevicePageSize<OP, CHUNK><<< BlockPerDevice, blockSize, shmem_size >>>
         (d_tmp, d_in, N, num_seq_chunks, devID, pageSize);
-      if (devID != 0) cudaMemPrefetchAsync(d_tmp + pageElems*devID, pageSize, Device, 0); 
-      cudaEventRecord(syncEvent[devID]);
+      CUDA_RT_CALL(cudaGetLastError());
+      if (devID != 0) CUDA_RT_CALL(cudaMemPrefetchAsync(d_tmp + pageElems*devID, pageSize, Device, 0)); 
+      CUDA_RT_CALL(cudaEventRecord(syncEvent[devID]));
     }
-    cudaSetDevice(Device); 
+    CUDA_RT_CALL(cudaSetDevice(Device)); 
     for(int devID = 0; devID < DeviceCount; devID++){
-      cudaStreamWaitEvent(0, syncEvent[devID], 0);
+      CUDA_RT_CALL(cudaStreamWaitEvent(0, syncEvent[devID], 0));
     }
 
     {
@@ -352,19 +357,21 @@ cudaError_t scanIncVoidArgsMDPS(void* args[]){
         const size_t shmem_size = block_size * sizeof(typename OP::RedElTp);
         scanManyBlockPS<OP><<< 1, block_size, shmem_size>>>(d_tmp, DeviceCount, pageSize);
         for(int devID = 1; devID < DeviceCount; devID++){
-            cudaMemPrefetchAsync(d_tmp + pageElems*devID, pageSize, devID); 
+            CUDA_RT_CALL(cudaMemPrefetchAsync(d_tmp + pageElems*devID, pageSize, devID)); 
+
         }
-        cudaEventRecord(scan1BlockEvent);
+        CUDA_RT_CALL(cudaEventRecord(scan1BlockEvent));
     }
     
 
     for(int devID = 0; devID < DeviceCount; devID++){
-      cudaSetDevice(devID);
-      cudaStreamWaitEvent(0, scan1BlockEvent, 0);
+      CUDA_RT_CALL(cudaSetDevice(devID));
+      CUDA_RT_CALL(cudaStreamWaitEvent(0, scan1BlockEvent, 0));
       scan3rdKernelMultiDevicePageSize<OP, CHUNK><<< BlockPerDevice, blockSize, shmem_size >>>
         (d_out, d_in, d_tmp, N, num_seq_chunks, devID, pageSize);
+        CUDA_RT_CALL(cudaGetLastError());
     }
-    cudaSetDevice(Device);
+    CUDA_RT_CALL(cudaSetDevice(Device));
     return cudaGetLastError();
 }
 

@@ -109,24 +109,6 @@ void LogHardware(char filename[]){
 }
 
 
-
-
-/*
-
- Can't Link to CuRand for some bizzar reason?
-
-template<class T>
-void RandomInit(T* data, unsigned seed, size_t N){
-    curandGenerator_t generator;
-    curandCreateGenerator(&generator, CURAND_RNG_PSEUDO_DEFAULT);
-    curandSetPseudoRandomGeneratorSeed(generator, seed);
-    curandGenerate(generator, (unsigned int*)data, N);
-    curandDestroyGenerator(generator);
-}
-*/
-
-
-
 template<class T>
 cudaError_t init_arr(T* data, unsigned long seed, size_t N){
     int num_blocks = (N + BLOCKSIZE - 1 ) / BLOCKSIZE;

@@ -83,6 +83,7 @@ int main(int argc, char* argv[]) {
     float* scan_MD_PS = (float*)malloc(sizeof(float)*ITERATIONS);
 
     { //Single Core
+        std::cout << "Starting Single\n";
         unsigned int blockSize = 1024;
         void *args[] = {&blockSize, &N, &data_out, &data_in, &data_tmp};
         cudaError_t (*function)(void**) = &scanIncVoidArgs<Add <funcType> >;
@@ -90,12 +91,14 @@ int main(int argc, char* argv[]) {
     }
 
     { //Multi Core
+        std::cout << "Starting MultiCore\n";
         void *args[] = {&N, &data_out, &data_in, &data_tmp, &syncEvent, &scan1blockEvent};
         cudaError_t (*function)(void**) = &scanIncVoidArgsMD<Add <funcType>>;
         benchmarkFunction(function, args,scan_MD_NoPS, ITERATIONS);
     }
     
     { //Multi Core Page
+        std::cout << "Starting Paged Multicore\n";
         void *args[] = {&N, &data_out, &data_in, &data_tmp, &syncEvent, &scan1blockEvent, &pageSize};
         cudaError_t (*function)(void**) = &scanIncVoidArgsMDPS<Add <funcType>>;
         benchmarkFunction(function, args,scan_MD_PS, ITERATIONS);
