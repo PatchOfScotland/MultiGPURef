@@ -217,7 +217,6 @@ cudaError_t scanIncVoidArgsMD(void* args[]){
             
     int Device;
     cudaGetDevice(&Device);
-    std::cout << "Start Device:" << Device << "\n";
         
     int DeviceCount;
     cudaGetDeviceCount(&DeviceCount);
@@ -253,7 +252,6 @@ cudaError_t scanIncVoidArgsMD(void* args[]){
         CUDA_RT_CALL(cudaGetLastError());
         int newDev;
         cudaGetDevice(&newDev);
-        std::cout << "Device:" << newDev << "\n";
         CUDA_RT_CALL(cudaEventRecord(scan1BlockEvent));
     }
     
