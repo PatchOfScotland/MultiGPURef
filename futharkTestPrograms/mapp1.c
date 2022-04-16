@@ -4438,6 +4438,7 @@ struct cuda_context {
   CUdevice* devices;
   CUcontext* contexts;
   CUmodule* modules;
+  CUevent* finished;
 };
 
 #define CU_DEV_ATTR(x) (CU_DEVICE_ATTRIBUTE_##x)
@@ -4547,12 +4548,14 @@ static int cuda_device_setup(struct cuda_context *ctx) {
   ctx->devices = (CUdevice*)malloc(sizeof(CUdevice)*used_devices);
   ctx->contexts = (CUcontext*)malloc(sizeof(CUcontext)*used_devices);
   ctx->modules = (CUmodule*)malloc(sizeof(CUmodule)*used_devices);
+  ctx->finished = (CUevent*)malloc(sizeof(CUevent)*used_devices);
 
   for(int devIdx = 0; devIdx < used_devices; devIdx++){
     CUDA_SUCCEED_FATAL(cuDeviceGet(&ctx->devices[devIdx], devices[devIdx]));
     CUDA_SUCCEED_FATAL(cuCtxCreate(&ctx->contexts[devIdx], 
                                    CU_CTX_SCHED_AUTO, 
                                    ctx->devices[devIdx]));
+    CUDA_SUCCEED_FATAL(cuEventCreate(&ctx->finished[devIdx], CU_EVENT_DISABLE_TIMING));                                   
   }
 
   // The Device ids are no longer needed, since  
@@ -4847,7 +4850,7 @@ static char* cuda_module_setup(struct cuda_context *ctx,
 
   for(int devID = 0; devID < ctx->device_count; devID++){
     CUDA_SUCCEED_FATAL(cuCtxPushCurrent(ctx->contexts[devID]));
-    CUDA_SUCCEED_FATAL(cuModuleLoad(&ctx->modules[devID], ptx));
+    CUDA_SUCCEED_FATAL(cuModuleLoadData(&ctx->modules[devID], ptx));
     CUDA_SUCCEED_FATAL(cuCtxPopCurrent(&ctx->contexts[devID]));
   }
 
@@ -5303,6 +5306,7 @@ struct futhark_context *futhark_context_new(struct futhark_context_config *cfg)
     CUDA_SUCCEED_FATAL(cuModuleGetFunction(&ctx->mainzisegmap_4600,
                                            ctx->cuda.module,
                                            "mainzisegmap_4600"));
+    ctx->mainzisegmap_4600_MD = (CUfunction*)malloc(sizeof(CUfunction)*ctx->cuda.device_count);                                           
     for(int devID = 0; devID < ctx->cuda.device_count; devID++){
       CUDA_SUCCEED_FATAL(cuCtxPushCurrent(ctx->cuda.contexts[devID]));
       CUDA_SUCCEED_FATAL(cuModuleGetFunction(&ctx->mainzisegmap_4600_MD[devID],
@@ -5720,6 +5724,11 @@ int futhark_values_i32_1d(struct futhark_context *ctx,
     lock_lock(&ctx->lock);
     CUDA_SUCCEED_FATAL(cuCtxPushCurrent(ctx->cuda.cu_ctx));
     {
+        if (ctx->use_multi_device) for(int devID = 0; 
+          devID < ctx->cuda.device_count; devID++){
+            CUDA_SUCCEED_FATAL(cuStreamWaitEvent(NULL, 
+                                                 ctx->cuda.finished[devID],0));
+        }
         cudaEvent_t *pevents = NULL;
         
         if (ctx->profiling && !ctx->profiling_paused) {
@@ -5825,10 +5834,11 @@ static int futrts_entry_main(struct futhark_context *ctx,
             void *kernel_args_4620_MD[] = {&ctx->global_failure, &n_4580,
                                         &kernel_arg_4623, &kernel_arg_4624};
             CUDA_SUCCEED_FATAL(cuCtxPushCurrent(ctx->cuda.contexts[devID]));
-            CUDA_SUCCEED_OR_RETURN(cuLaunchKernel(ctx->mainzisegmap_4600_MD[devID],
+            CUDA_SUCCEED_FATAL(cuLaunchKernel(ctx->mainzisegmap_4600_MD[devID],
                                                   grid[0], grid[1], grid[2],
                                                   segmap_group_sizze_4596, 1, 1, 0,
                                                   NULL, kernel_args_4620_MD, NULL));
+            CUDA_SUCCEED_FATAL(cuEventRecord(ctx->cuda.finished[devID], NULL));                                                  
             CUDA_SUCCEED_FATAL(cuCtxPopCurrent(&ctx->cuda.contexts[devID]));
           }
 
@@ -5892,6 +5902,7 @@ int futhark_entry_main(struct futhark_context *ctx,
     }
     if (ret == 0) {
         ret = futrts_entry_main(ctx, &mem_out_4610, xs_mem_4604, n_4580);
+        fprintf(stderr, "ret: %d\n", ret);
         if (ret == 0) {
             assert((*out0 =
                     (struct futhark_i32_1d *) malloc(sizeof(struct futhark_i32_1d))) !=
