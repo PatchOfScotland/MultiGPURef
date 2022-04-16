@@ -4966,7 +4966,7 @@ static CUresult cuda_alloc(struct cuda_context *ctx, size_t min_size,
     }
   }
 
-  CUresult res = cuMemAlloc(mem_out, min_size);
+  CUresult res = cuMemAllocManaged(mem_out, min_size, CU_MEM_ATTACH_GLOBAL);
   while (res == CUDA_ERROR_OUT_OF_MEMORY) {
     CUdeviceptr mem;
     if (free_list_first(&ctx->free_list, &mem) == 0) {
