@@ -5728,19 +5728,12 @@ int futhark_values_i32_1d(struct futhark_context *ctx,
     CUDA_SUCCEED_FATAL(cuCtxPushCurrent(ctx->cuda.cu_ctx));
     {
         if (ctx->use_multi_device) {
-          
-          CUcontext current_context;
-          cuCtxGetCurrent(&current_context);
-              
           for(int devID = 0; devID < ctx->cuda.device_count; devID++){
-            CUDA_SUCCEED_FATAL(cuCtxSetCurrent(ctx->cuda.contexts[devID]));
-            CUDA_SUCCEED_FATAL(cuCtxSynchronize());   
-            /* // This causes race condition
+            // This causes race condition
             CUDA_SUCCEED_FATAL(cuStreamWaitEvent(NULL, 
                                                  ctx->cuda.finished[devID],0));
-*/                                                
+                 
           }
-          CUDA_SUCCEED_FATAL(cuCtxSetCurrent(current_context));
         }
         cudaEvent_t *pevents = NULL;
         
