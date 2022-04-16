@@ -6,8 +6,8 @@
 #SBATCH -p gpu --gres=gpu:gtx1080:2
 
 
-
-cat data/i32_10.dat | ./mapp1
+nvcc mapp1.c -lcuda -lcuda --x c -o mapp1
+cat data/i32_10.dat | ./mapp1 >> res.dat
 
 
 

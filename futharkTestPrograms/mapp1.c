@@ -5726,8 +5726,14 @@ int futhark_values_i32_1d(struct futhark_context *ctx,
     {
         if (ctx->use_multi_device) for(int devID = 0; 
           devID < ctx->cuda.device_count; devID++){
+            CUDA_SUCCEED_FATAL(cuCtxPushCurrent(ctx->cuda.contexts[devID]));
+            CUDA_SUCCEED_FATAL(cuCtxSynchronize()); 
+            CUDA_SUCCEED_FATAL(cuCtxPopCurrent(&ctx->cuda.contexts[devID]));
+            /* // This causes race condition
             CUDA_SUCCEED_FATAL(cuStreamWaitEvent(NULL, 
                                                  ctx->cuda.finished[devID],0));
+
+*/                                                
         }
         cudaEvent_t *pevents = NULL;
         
@@ -5902,7 +5908,6 @@ int futhark_entry_main(struct futhark_context *ctx,
     }
     if (ret == 0) {
         ret = futrts_entry_main(ctx, &mem_out_4610, xs_mem_4604, n_4580);
-        fprintf(stderr, "ret: %d\n", ret);
         if (ret == 0) {
             assert((*out0 =
                     (struct futhark_i32_1d *) malloc(sizeof(struct futhark_i32_1d))) !=
