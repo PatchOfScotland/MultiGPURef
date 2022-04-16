@@ -4544,6 +4544,9 @@ static int cuda_device_setup(struct cuda_context *ctx) {
       used_devices++;
     }
   }
+  if(ctx->cfg.debugging){
+    fprintf(stderr, "Using %d devices\n", used_devices);
+  }
   ctx->device_count = used_devices;
   ctx->devices = (CUdevice*)malloc(sizeof(CUdevice)*used_devices);
   ctx->contexts = (CUcontext*)malloc(sizeof(CUcontext)*used_devices);
@@ -5724,16 +5727,20 @@ int futhark_values_i32_1d(struct futhark_context *ctx,
     lock_lock(&ctx->lock);
     CUDA_SUCCEED_FATAL(cuCtxPushCurrent(ctx->cuda.cu_ctx));
     {
-        if (ctx->use_multi_device) for(int devID = 0; 
-          devID < ctx->cuda.device_count; devID++){
-            CUDA_SUCCEED_FATAL(cuCtxPushCurrent(ctx->cuda.contexts[devID]));
-            CUDA_SUCCEED_FATAL(cuCtxSynchronize()); 
-            CUDA_SUCCEED_FATAL(cuCtxPopCurrent(&ctx->cuda.contexts[devID]));
+        if (ctx->use_multi_device) {
+          
+          CUcontext current_context;
+          cuCtxGetCurrent(&current_context);
+              
+          for(int devID = 0; devID < ctx->cuda.device_count; devID++){
+            CUDA_SUCCEED_FATAL(cuCtxSetCurrent(ctx->cuda.contexts[devID]));
+            CUDA_SUCCEED_FATAL(cuCtxSynchronize());   
             /* // This causes race condition
             CUDA_SUCCEED_FATAL(cuStreamWaitEvent(NULL, 
                                                  ctx->cuda.finished[devID],0));
-
 */                                                
+          }
+          CUDA_SUCCEED_FATAL(cuCtxSetCurrent(current_context));
         }
         cudaEvent_t *pevents = NULL;
         

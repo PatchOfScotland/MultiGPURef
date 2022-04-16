@@ -7,7 +7,7 @@
 
 
 nvcc mapp1.c -lnvrtc -lcuda --x c -o mapp1
-cat data/i32_10.dat | ./mapp1 >> res.dat
+cat data/i32_10.dat | ./mapp1 -D >> res.dat
 
 
 
