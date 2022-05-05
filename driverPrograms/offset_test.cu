@@ -15,8 +15,8 @@
 int main(int argc, char** argv){
   cuInit(0);
 
-  cuDevice dev;
-  cuContext ctx;
+  CUdevice dev;
+  CUcontext ctx;
   CUDA_SAFE_CALL(cuDeviceGet(&dev, 0));
   CUDA_SAFE_CALL(cuCtxCreate(&ctx, dev));
 
@@ -29,9 +29,9 @@ int main(int argc, char** argv){
   CUDA_SAFE_CALL(cuMemAllocManaged(&mem_in, sizeof(int)*10, CU_MEM_ATTACH_GLOBAL));
   CUDA_SAFE_CALL(cuMemAllocManaged(&mem_out, sizeof(int), CU_MEM_ATTACH_GLOBAL));
 
-  CUDA_SAFE_CALL(cuMemcpyHtoD(arr, mem_in, sizeof(int)*10))
-  CUDA_SAFE_CALL(cuMemcpyDtoD(mem_in + sizeof(int), mem_out, sizeof(int)));
-  CUDA_SAFE_CALL(cuMemcpyDtoH(mem_out, arr, sizeof(int)));
+  CUDA_SAFE_CALL(cuMemcpyHtoD(mem_in, arr, sizeof(int)*10));
+  CUDA_SAFE_CALL(cuMemcpyDtoD(mem_out, mem_in + sizeof(int), sizeof(int)));
+  CUDA_SAFE_CALL(cuMemcpyDtoH(arr, mem_out, sizeof(int)));
 
   fprintf(stderr, "%d\n", arr[0]);
 
