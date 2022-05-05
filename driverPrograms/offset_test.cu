@@ -18,7 +18,7 @@ int main(int argc, char** argv){
   CUdevice dev;
   CUcontext ctx;
   CUDA_SAFE_CALL(cuDeviceGet(&dev, 0));
-  CUDA_SAFE_CALL(cuCtxCreate(&ctx, dev));
+  CUDA_SAFE_CALL(cuCtxCreate(&ctx,CU_CTX_SCHED_AUTO, dev));
 
   int* arr = (int*)malloc(10*sizeof(int));
   for(int i = 0; i < 10; i++){
