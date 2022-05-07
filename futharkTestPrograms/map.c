@@ -5462,6 +5462,7 @@ static void hint_prefetch_variable_array(
     size_t offset = 0;
     size_t left = size;
     for(int device_id = 0; device_id < ctx->device_count; device_id++){
+      fprintf(stderr, "offset: %zu, left: %zu,size: %zu, device_id: %d\n", offset, left, size, device_id);
       CUDA_SUCCEED_FATAL(cuCtxPushCurrent(ctx->contexts[device_id]));
       if(device_id != 0) CUDA_SUCCEED_FATAL(cuMemAdvise(mem, 
         offset, CU_MEM_ADVISE_SET_ACCESSED_BY, 
