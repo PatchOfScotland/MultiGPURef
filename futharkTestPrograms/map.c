@@ -5462,7 +5462,6 @@ static void hint_prefetch_variable_array(
     size_t offset = 0;
     size_t left = size;
     for(int device_id = 0; device_id < ctx->device_count; device_id++){
-      fprintf(stderr, "offset: %zu, left: %zu,size: %zu, device_id: %d\n", offset, left, size, device_id);
       CUDA_SUCCEED_FATAL(cuCtxPushCurrent(ctx->contexts[device_id]));
       if(device_id != 0) CUDA_SUCCEED_FATAL(cuMemAdvise(mem, 
         offset, CU_MEM_ADVISE_SET_ACCESSED_BY, 
@@ -6395,16 +6394,6 @@ static int futrts_entry_main(struct futhark_context *ctx,
                                     &segmap_usable_groups_4636,
                                     &kernel_arg_4666, &kernel_arg_4667};
         int64_t time_start_4664 = 0, time_end_4665 = 0;
-        
-        if (ctx->debugging) {
-            fprintf(ctx->log,
-                    "Launching %s with grid size [%ld, %ld, %ld] and block size [%ld, %ld, %ld]; shared memory: %d bytes.\n",
-                    "main.segmap_4639", (long) segmap_usable_groups_4636,
-                    (long) 1, (long) 1, (long) segmap_group_sizze_4635,
-                    (long) 1, (long) 1, (int) 0);
-            time_start_4664 = get_wall_time();
-        }
-        
         cudaEvent_t *pevents = NULL;
         
         if (ctx->profiling && !ctx->profiling_paused) {
@@ -6420,6 +6409,17 @@ static int futrts_entry_main(struct futhark_context *ctx,
             grid_MD[perm[1]] = 1;
             grid_MD[perm[2]] = 1;
             for (int devID = 0; devID < ctx->cuda.device_count; devID++) {
+                if (ctx->debugging) {
+                    fprintf(ctx->log,
+                            "Launching %s on Device %d with grid size [%ld, %ld, %ld] and block size [%ld, %ld, %ld]; shared memory: %d bytes.\n",
+                            "main.segmap_4639", devID,
+                            (long) (segmap_usable_groups_4636 /
+                                    ctx->cuda.device_count + 1), (long) 1,
+                            (long) 1, (long) segmap_group_sizze_4635, (long) 1,
+                            (long) 1, (int) 0);
+                    time_start_4664 = get_wall_time();
+                }
+                
                 int device_id = devID;
                 void *kernel_args_4663[] = {&device_id, &device_count,
                                             &ctx->global_failure, &n_4619,
@@ -6451,12 +6451,21 @@ static int futrts_entry_main(struct futhark_context *ctx,
                 CUDA_SUCCEED_FATAL(cuCtxPopCurrent(&ctx->cuda.contexts[devID]));
             }
             ctx->cuda.kernel_iterator = !ctx->cuda.kernel_iterator;
-        } else
+        } else {
+            if (ctx->debugging) {
+                fprintf(ctx->log,
+                        "Launching %s with grid size [%ld, %ld, %ld] and block size [%ld, %ld, %ld]; shared memory: %d bytes.\n",
+                        "main.segmap_4639", (long) segmap_usable_groups_4636,
+                        (long) 1, (long) 1, (long) segmap_group_sizze_4635,
+                        (long) 1, (long) 1, (int) 0);
+                time_start_4664 = get_wall_time();
+            }
             CUDA_SUCCEED_OR_RETURN(cuLaunchKernel(ctx->mainzisegmap_4639,
                                                   grid[0], grid[1], grid[2],
                                                   segmap_group_sizze_4635, 1, 1,
                                                   0, NULL, kernel_args_4663,
                                                   NULL));
+        }
         if (pevents != NULL) {
             if (ctx->use_multi_device)
                 for (int device_id = 0; device_id < ctx->cuda.device_count;
