@@ -5463,15 +5463,15 @@ static void hint_prefetch_variable_array(
     size_t left = size;
     for(int device_id = 0; device_id < ctx->cuda.device_count; device_id++){
       CUDA_SUCCEED_FATAL(cuCtxPushCurrent(ctx->cuda.contexts[device_id]));
-      if(device_id != 0) CUDA_SUCCEED_FATAL(cuMemAdvice(mem, 
+      if(device_id != 0) CUDA_SUCCEED_FATAL(cuMemAdvise(mem, 
         offset, CU_MEM_ADVISE_SET_ACCESSED_BY, 
         ctx->cuda.devices[device_id]));
-      CUDA_SUCCEED_FATAL(cuMemAdvice(mem + offset, 
+      CUDA_SUCCEED_FATAL(cuMemAdvise(mem + offset, 
         data_per_device, CU_MEM_ADVISE_SET_PREFERRED_LOCATION, 
         ctx->cuda.devices[device_id]));
       CUDA_SUCCEED_FATAL(cuMemPrefetchAsync(mem + offset, 
         data_per_device, ctx->cuda.devices[device_id], NULL));
-      CUDA_SUCCEED_FATAL(cuMemAdvice(mem + offset + data_per_device, left, 
+      CUDA_SUCCEED_FATAL(cuMemAdvise(mem + offset + data_per_device, left, 
         CU_MEM_ADVISE_SET_ACCESSED_BY, ctx->cuda.devices[device_id]));
       CUDA_SUCCEED_FATAL(cuCtxPopCurrent(&ctx->cuda.contexts[device_id]));
       offset += data_per_device;
@@ -5481,7 +5481,7 @@ static void hint_prefetch_variable_array(
 
 static void hint_readonly_array(struct futhark_context *ctx, 
                                 CUdeviceptr mem, size_t count){
-  CUDA_SUCCEED_FATAL(cuMemAdvice(mem, count, CU_MEM_ADVISE_SET_READ_MOSTLY));
+  CUDA_SUCCEED_FATAL(cuMemAdvise(mem, count, CU_MEM_ADVISE_SET_READ_MOSTLY));
   for(int device_id = 0; device_id < ctx->cuda.device_count; device_id++){
     CUDA_SUCCEED_FATAL(cuMemPrefetchAsync(
       mem, count, ctx->devices[device_id], NULL));
@@ -5574,7 +5574,7 @@ struct futhark_context_config *futhark_context_config_new(void)
     cuda_config_init(&cfg->cu_cfg, 1, tuning_param_names, tuning_param_vars,
                      cfg->tuning_params, tuning_param_classes);
     cfg->use_multi_device = true;
-    cff->hint_memory = true;
+    cfg->hint_memory = true;
     return cfg;
 }
 void futhark_context_config_free(struct futhark_context_config *cfg)
