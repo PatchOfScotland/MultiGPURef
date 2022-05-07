@@ -6443,7 +6443,7 @@ static int futrts_entry_main(struct futhark_context *ctx,
                     if (other_dev == devID)
                         continue;
                     CUDA_SUCCEED_FATAL(cuStreamWaitEvent(NULL,
-                                                         ctx->cuda.kernel_done[devID *
+                                                         ctx->cuda.kernel_done[other_dev *
                                                                                2 +
                                                                                ctx->cuda.kernel_iterator],
                                                          0));
