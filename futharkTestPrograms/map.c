@@ -5471,8 +5471,10 @@ static void hint_prefetch_variable_array(
         ctx->devices[device_id]));
       CUDA_SUCCEED_FATAL(cuMemPrefetchAsync(mem + offset, 
         data_per_device, ctx->devices[device_id], NULL));
-      CUDA_SUCCEED_FATAL(cuMemAdvise(mem + offset + data_per_device, left, 
-        CU_MEM_ADVISE_SET_ACCESSED_BY, ctx->devices[device_id]));
+      if(device_id != ctx->device_count -1) CUDA_SUCCEED_FATAL(cuMemAdvise(
+                                      mem + offset + data_per_device, left, 
+                                      CU_MEM_ADVISE_SET_ACCESSED_BY, 
+                                      ctx->devices[device_id]));
       CUDA_SUCCEED_FATAL(cuCtxPopCurrent(&ctx->contexts[device_id]));
       offset += data_per_device;
       left   -= data_per_device;
