@@ -5541,8 +5541,8 @@ const char *cuda_program[] =
             "t32_t*)p, x);\n#else\n  return atomic_max(p, x);\n#endif\n}\n\ninline int32_t atomic_smin_i32_global(volatile __global int32_t *p, int32_t x) {\n#ifdef FUTHARK_CUDA\n  return atomicMin((int32_t*)p, x);\n#else\n  return atomic_min(p, x);\n#endif\n}\n\ninline int32_t atomic_smin_i32_local(volatile __local int32_t *p, int32_t x) {\n#ifdef FUTHARK_CUDA\n  return atomicMin((int32_t*)p, x);\n#else\n  return atomic_min(p, x);\n#endif\n}\n\ninline uint32_t atomic_umax_i32_global(volatile __global uint32_t *p, uint32_t x) {\n#ifdef FUTHARK_CUDA\n  return atomicMax((uint32_t*)p, x);\n#else\n  return atomic_max(p, x);\n#endif\n}\n\ninline uint32_t atomic_umax_i32_local(volatile __local uint32_t *p, uint32_t x) {\n#ifdef FUTHARK_CUDA\n  return atomicMax((uint32_t*)p, x);\n#else\n  return atomic_max(p, x);\n#endif\n}\n\ninline uint32_t atomic_umin_i32_global(volatile __global uint32_t *p, uint32_t x) {\n#ifdef FUTHARK_CUDA\n  return atomicMin((uint32_t*)p, x);\n#else\n  return atomic_min(p, x);\n#endif\n}\n\ninline uint32_t atomic_umin_i32_local(volatile __local uint32_t *p, uint32_t x) {\n#ifdef FUTHARK_CUDA\n  return atomicMin((uint32_t*)p, x);\n#else\n  return atomic_min(p, x);\n#endif\n}\n\ninline int32_t atomic_and_i32_global(volatile __global int32_t *p, int32_t x) {\n#ifdef FUTHARK_CUDA\n  return atomicAnd((int32_t*)p, x);\n#else\n  return atomic_and(p, x);\n#endif\n}\n\ninline int32_t atomic_and_i32_local(volatile __local int32_t *p, int32_t x) {\n#ifdef FUTHARK_CUDA\n  return atomicAnd((int32_t*)p, x);\n#else\n  return atomic_and(p, x);\n#endif\n}\n\ninline int32_t atomic_or_i32_global(volatile __global int32_t *p, int32_t x) {\n#ifdef FUTHARK_CUDA\n  return atomicOr((int32_t*)p, x);\n#else\n  return atomic_or(p, x);\n#endif\n}\n\ninline int32_t atomic_or_i32_local(volatile __local int32_t *p, int32_t x) {\n#ifdef FUTHARK_CUDA\n  return atomicOr((int32_t*)p, x);\n#else\n  return atomic_or(p, x);\n#endif\n}\n\ninline int32_t atomic_xor_i32_global(volatile __global int32_t *p, int32_t x) {\n#ifdef FUTHARK_CUDA\n  return atomicXor((int32_t*)p, x);\n#else\n  ret",
             "urn atomic_xor(p, x);\n#endif\n}\n\ninline int32_t atomic_xor_i32_local(volatile __local int32_t *p, int32_t x) {\n#ifdef FUTHARK_CUDA\n  return atomicXor((int32_t*)p, x);\n#else\n  return atomic_xor(p, x);\n#endif\n}\n\n// Start of 64 bit atomics\n\ninline int64_t atomic_xchg_i64_global(volatile __global int64_t *p, int64_t x) {\n#ifdef FUTHARK_CUDA\n  return atomicExch((uint64_t*)p, x);\n#else\n  return atom_xor(p, x);\n#endif\n}\n\ninline int64_t atomic_xchg_i64_local(volatile __local int64_t *p, int64_t x) {\n#ifdef FUTHARK_CUDA\n  return atomicExch((uint64_t*)p, x);\n#else\n  return atom_xor(p, x);\n#endif\n}\n\ninline int64_t atomic_cmpxchg_i64_global(volatile __global int64_t *p,\n                                         int64_t cmp, int64_t val) {\n#ifdef FUTHARK_CUDA\n  return atomicCAS((uint64_t*)p, cmp, val);\n#else\n  return atom_cmpxchg(p, cmp, val);\n#endif\n}\n\ninline int64_t atomic_cmpxchg_i64_local(volatile __local int64_t *p,\n                                        int64_t cmp, int64_t val) {\n#ifdef FUTHARK_CUDA\n  return atomicCAS((uint64_t*)p, cmp, val);\n#else\n  return atom_cmpxchg(p, cmp, val);\n#endif\n}\n\ninline int64_t atomic_add_i64_global(volatile __global int64_t *p, int64_t x) {\n#ifdef FUTHARK_CUDA\n  return atomicAdd((uint64_t*)p, x);\n#else\n  return atom_add(p, x);\n#endif\n}\n\ninline int64_t atomic_add_i64_local(volatile __local int64_t *p, int64_t x) {\n#ifdef FUTHARK_CUDA\n  return atomicAdd((uint64_t*)p, x);\n#else\n  return atom_add(p, x);\n#endif\n}\n\n#ifdef FUTHARK_F64_ENABLED\n\ninline double atomic_fadd_f64_global(volatile __global double *p, double x) {\n#if defined(FUTHARK_CUDA) && __CUDA_ARCH__ >= 600\n  return atomicAdd((double*)p, x);\n#else\n  union { int64_t i; double f; } old;\n  union { int64_t i; double f; } assumed;\n  old.f = *p;\n  do {\n    assumed.f = old.f;\n    old.f = old.f + x;\n    old.i = atomic_cmpxchg_i64_global((volatile __global int64_t*)p, assumed.i, old.i);\n  } while (assumed.i != old.i);\n  return old.f;\n#endif\n}\n\ninline double atomic_fadd_f64_local(volatile __local",
             " double *p, double x) {\n#if defined(FUTHARK_CUDA) && __CUDA_ARCH__ >= 600\n  return atomicAdd((double*)p, x);\n#else\n  union { int64_t i; double f; } old;\n  union { int64_t i; double f; } assumed;\n  old.f = *p;\n  do {\n    assumed.f = old.f;\n    old.f = old.f + x;\n    old.i = atomic_cmpxchg_i64_local((volatile __local int64_t*)p, assumed.i, old.i);\n  } while (assumed.i != old.i);\n  return old.f;\n#endif\n}\n\n#endif\n\ninline int64_t atomic_smax_i64_global(volatile __global int64_t *p, int64_t x) {\n#ifdef FUTHARK_CUDA\n  return atomicMax((int64_t*)p, x);\n#else\n  return atom_max(p, x);\n#endif\n}\n\ninline int64_t atomic_smax_i64_local(volatile __local int64_t *p, int64_t x) {\n#ifdef FUTHARK_CUDA\n  return atomicMax((int64_t*)p, x);\n#else\n  return atom_max(p, x);\n#endif\n}\n\ninline int64_t atomic_smin_i64_global(volatile __global int64_t *p, int64_t x) {\n#ifdef FUTHARK_CUDA\n  return atomicMin((int64_t*)p, x);\n#else\n  return atom_min(p, x);\n#endif\n}\n\ninline int64_t atomic_smin_i64_local(volatile __local int64_t *p, int64_t x) {\n#ifdef FUTHARK_CUDA\n  return atomicMin((int64_t*)p, x);\n#else\n  return atom_min(p, x);\n#endif\n}\n\ninline uint64_t atomic_umax_i64_global(volatile __global uint64_t *p, uint64_t x) {\n#ifdef FUTHARK_CUDA\n  return atomicMax((uint64_t*)p, x);\n#else\n  return atom_max(p, x);\n#endif\n}\n\ninline uint64_t atomic_umax_i64_local(volatile __local uint64_t *p, uint64_t x) {\n#ifdef FUTHARK_CUDA\n  return atomicMax((uint64_t*)p, x);\n#else\n  return atom_max(p, x);\n#endif\n}\n\ninline uint64_t atomic_umin_i64_global(volatile __global uint64_t *p, uint64_t x) {\n#ifdef FUTHARK_CUDA\n  return atomicMin((uint64_t*)p, x);\n#else\n  return atom_min(p, x);\n#endif\n}\n\ninline uint64_t atomic_umin_i64_local(volatile __local uint64_t *p, uint64_t x) {\n#ifdef FUTHARK_CUDA\n  return atomicMin((uint64_t*)p, x);\n#else\n  return atom_min(p, x);\n#endif\n}\n\ninline int64_t atomic_and_i64_global(volatile __global int64_t *p, int64_t x) {\n#ifdef FUTHARK_CUDA\n  return atomicAnd((int64_t*)p, x);\n#else\n  return ato",
-            "m_and(p, x);\n#endif\n}\n\ninline int64_t atomic_and_i64_local(volatile __local int64_t *p, int64_t x) {\n#ifdef FUTHARK_CUDA\n  return atomicAnd((int64_t*)p, x);\n#else\n  return atom_and(p, x);\n#endif\n}\n\ninline int64_t atomic_or_i64_global(volatile __global int64_t *p, int64_t x) {\n#ifdef FUTHARK_CUDA\n  return atomicOr((int64_t*)p, x);\n#else\n  return atom_or(p, x);\n#endif\n}\n\ninline int64_t atomic_or_i64_local(volatile __local int64_t *p, int64_t x) {\n#ifdef FUTHARK_CUDA\n  return atomicOr((int64_t*)p, x);\n#else\n  return atom_or(p, x);\n#endif\n}\n\ninline int64_t atomic_xor_i64_global(volatile __global int64_t *p, int64_t x) {\n#ifdef FUTHARK_CUDA\n  return atomicXor((int64_t*)p, x);\n#else\n  return atom_xor(p, x);\n#endif\n}\n\ninline int64_t atomic_xor_i64_local(volatile __local int64_t *p, int64_t x) {\n#ifdef FUTHARK_CUDA\n  return atomicXor((int64_t*)p, x);\n#else\n  return atom_xor(p, x);\n#endif\n}\n\n// End of atomics.h\n\n\n\n__kernel void mainzisegmap_4639(const int device_id, const int device_count,\n                                __global int *global_failure, int64_t n_4619,\n                                int64_t segmap_usable_groups_4636, __global\n                                unsigned char *xs_mem_4643, __global\n                                unsigned char *mem_4647)\n{\n    #define segmap_group_sizze_4635 (mainzisegmap_group_sizze_4627)\n    \n    const int block_dim0 = 0;\n    const int block_dim1 = 1;\n    const int block_dim2 = 2;\n    \n    if (*global_failure >= 0)\n        return;\n    \n    int32_t global_tid_4651;\n    int32_t local_tid_4652;\n    int64_t group_sizze_4655;\n    int32_t wave_sizze_4654;\n    int32_t group_tid_4653;\n    int32_t device_id_4656;\n    int32_t device_count_4657;\n    \n    global_tid_4651 = get_global_id(0);\n    local_tid_4652 = get_local_id(0);\n    group_sizze_4655 = get_local_size(0);\n    wave_sizze_4654 = LOCKSTEP_WIDTH;\n    group_tid_4653 = get_group_id(0);\n    device_id_4656 = device_id;\n    device_count_4657 = device_count;\n    \n    int32_t phys_tid_463",
-            "9 = global_tid_4651;\n    int64_t device_blocks_4658 = sdiv_up64(segmap_usable_groups_4636,\n                                           sext_i32_i64(device_count_4657)) +\n            (int64_t) 1;\n    int64_t global_tid_4659 = segmap_group_sizze_4635 * device_blocks_4658 *\n            sext_i32_i64(device_id_4656) + sext_i32_i64(group_tid_4653) *\n            segmap_group_sizze_4635 + sext_i32_i64(local_tid_4652);\n    int64_t slice_4660 = n_4619;\n    int64_t gtid_4638 = global_tid_4659;\n    int64_t remnant_4661 = global_tid_4659 - gtid_4638;\n    \n    if (slt64(gtid_4638, n_4619)) {\n        int32_t x_4640;\n        \n        x_4640 = ((__global int32_t *) xs_mem_4643)[gtid_4638];\n        \n        int32_t defunc_0_f_res_4641 = add32(1, x_4640);\n        \n        ((__global int32_t *) mem_4647)[gtid_4638] = defunc_0_f_res_4641;\n    }\n    \n  error_0:\n    return;\n    #undef segmap_group_sizze_4635\n}\n",
+            "m_and(p, x);\n#endif\n}\n\ninline int64_t atomic_and_i64_local(volatile __local int64_t *p, int64_t x) {\n#ifdef FUTHARK_CUDA\n  return atomicAnd((int64_t*)p, x);\n#else\n  return atom_and(p, x);\n#endif\n}\n\ninline int64_t atomic_or_i64_global(volatile __global int64_t *p, int64_t x) {\n#ifdef FUTHARK_CUDA\n  return atomicOr((int64_t*)p, x);\n#else\n  return atom_or(p, x);\n#endif\n}\n\ninline int64_t atomic_or_i64_local(volatile __local int64_t *p, int64_t x) {\n#ifdef FUTHARK_CUDA\n  return atomicOr((int64_t*)p, x);\n#else\n  return atom_or(p, x);\n#endif\n}\n\ninline int64_t atomic_xor_i64_global(volatile __global int64_t *p, int64_t x) {\n#ifdef FUTHARK_CUDA\n  return atomicXor((int64_t*)p, x);\n#else\n  return atom_xor(p, x);\n#endif\n}\n\ninline int64_t atomic_xor_i64_local(volatile __local int64_t *p, int64_t x) {\n#ifdef FUTHARK_CUDA\n  return atomicXor((int64_t*)p, x);\n#else\n  return atom_xor(p, x);\n#endif\n}\n\n// End of atomics.h\n\n\n\n__kernel void mainzisegmap_4639(const int device_id, const int device_count,\n                                const size_t page_size, __global\n                                int *global_failure, int64_t n_4619,\n                                int64_t segmap_usable_groups_4636, __global\n                                unsigned char *xs_mem_4643, __global\n                                unsigned char *mem_4647)\n{\n    #define segmap_group_sizze_4635 (mainzisegmap_group_sizze_4627)\n    \n    const int block_dim0 = 0;\n    const int block_dim1 = 1;\n    const int block_dim2 = 2;\n    \n    if (*global_failure + page_size * device_id >= 0)\n        return;\n    \n    int32_t global_tid_4651;\n    int32_t local_tid_4652;\n    int64_t group_sizze_4655;\n    int32_t wave_sizze_4654;\n    int32_t group_tid_4653;\n    int32_t device_id_4656;\n    int32_t device_count_4657;\n    \n    global_tid_4651 = get_global_id(0);\n    local_tid_4652 = get_local_id(0);\n    group_sizze_4655 = get_local_size(0);\n    wave_sizze_4654 = LOCKSTEP_WIDTH;\n    group_tid_4653 = get_group_id(0);\n    device_id_4656 ",
+            "= device_id;\n    device_count_4657 = device_count;\n    page_sizze_4658 = page_size;\n    \n    int32_t phys_tid_4639 = global_tid_4651;\n    int64_t device_blocks_4659 = sdiv_up64(segmap_usable_groups_4636,\n                                           sext_i32_i64(device_count_4657)) +\n            (int64_t) 1;\n    int64_t global_tid_4660 = segmap_group_sizze_4635 * device_blocks_4659 *\n            sext_i32_i64(device_id_4656) + sext_i32_i64(group_tid_4653) *\n            segmap_group_sizze_4635 + sext_i32_i64(local_tid_4652);\n    int64_t slice_4661 = n_4619;\n    int64_t gtid_4638 = global_tid_4660;\n    int64_t remnant_4662 = global_tid_4660 - gtid_4638;\n    \n    if (slt64(gtid_4638, n_4619)) {\n        int32_t x_4640;\n        \n        x_4640 = ((__global int32_t *) xs_mem_4643)[gtid_4638];\n        \n        int32_t defunc_0_f_res_4641 = add32(1, x_4640);\n        \n        ((__global int32_t *) mem_4647)[gtid_4638] = defunc_0_f_res_4641;\n    }\n    \n  error_0:\n    return;\n    #undef segmap_group_sizze_4635\n}\n",
             NULL};
 static const char *tuning_param_names[] = {"main.segmap_group_size_4627"};
 static const char *tuning_param_vars[] = {"mainzisegmap_group_sizze_4627"};
@@ -5746,6 +5746,7 @@ struct futhark_context {
     int total_runs;
     long total_runtime;
     bool use_multi_device;
+    size_t page_size;
 };
 struct futhark_context *futhark_context_new(struct futhark_context_config *cfg)
 {
@@ -5783,16 +5784,18 @@ struct futhark_context *futhark_context_new(struct futhark_context_config *cfg)
         1;
     if (ctx->error != NULL)
         futhark_panic(1, "%s\n", ctx->error);
+    ctx->page_size = sysconf(_SC_PAGESIZE);
     
     int32_t no_error = -1;
     
-    CUDA_SUCCEED_FATAL(cuMemAllocManaged(&ctx->global_failure, sizeof(no_error),
+    // Since the Global failure is shared, each device needs it 
+    CUDA_SUCCEED_FATAL(cuMemAllocManaged(&ctx->global_failure,
+                                         ctx->cuda.device_count * page_size,
                                          CU_MEM_ATTACH_GLOBAL));
     CUDA_SUCCEED_FATAL(cuMemcpyHtoD(ctx->global_failure, &no_error,
                                     sizeof(no_error)));
-    // The +1 is to avoid zero-byte allocations.
     CUDA_SUCCEED_FATAL(cuMemAllocManaged(&ctx->global_failure_args,
-                                         sizeof(int64_t) * (0 + 1),
+                                         ctx->cuda.device_count * page_size,
                                          CU_MEM_ATTACH_GLOBAL));
     CUDA_SUCCEED_FATAL(cuModuleGetFunction(&ctx->mainzisegmap_4639,
                                            ctx->cuda.module,
@@ -6143,7 +6146,7 @@ int futhark_context_clear_caches(struct futhark_context *ctx)
 }
 
 static int futrts_entry_main(struct futhark_context *ctx,
-                             struct memblock_device *mem_out_p_4662,
+                             struct memblock_device *mem_out_p_4663,
                              struct memblock_device xs_mem_4643,
                              int64_t n_4619);
 
@@ -6333,7 +6336,7 @@ const int64_t *futhark_shape_i32_1d(struct futhark_context *ctx,
 }
 
 static int futrts_entry_main(struct futhark_context *ctx,
-                             struct memblock_device *mem_out_p_4662,
+                             struct memblock_device *mem_out_p_4663,
                              struct memblock_device xs_mem_4643, int64_t n_4619)
 {
     (void) ctx;
@@ -6365,8 +6368,8 @@ static int futrts_entry_main(struct futhark_context *ctx,
     
     int32_t virt_num_groups_4650 = sext_i64_i32(sdiv_up64(n_4619,
                                                           segmap_group_sizze_4635));
-    CUdeviceptr kernel_arg_4666 = xs_mem_4643.mem;
-    CUdeviceptr kernel_arg_4667 = mem_4647.mem;
+    CUdeviceptr kernel_arg_4667 = xs_mem_4643.mem;
+    CUdeviceptr kernel_arg_4668 = mem_4647.mem;
     
     if ((((((1 && segmap_usable_groups_4636 != 0) && 1 != 0) && 1 != 0) &&
           segmap_group_sizze_4635 != 0) && 1 != 0) && 1 != 0) {
@@ -6389,11 +6392,12 @@ static int futrts_entry_main(struct futhark_context *ctx,
         
         int device_id = 0;
         int device_count = ctx->cuda.device_count;
-        void *kernel_args_4663[] = {&device_id, &device_count,
+        size_t page_size = ctx->page_size;
+        void *kernel_args_4664[] = {&device_id, &device_count, &page_size,
                                     &ctx->global_failure, &n_4619,
                                     &segmap_usable_groups_4636,
-                                    &kernel_arg_4666, &kernel_arg_4667};
-        int64_t time_start_4664 = 0, time_end_4665 = 0;
+                                    &kernel_arg_4667, &kernel_arg_4668};
+        int64_t time_start_4665 = 0, time_end_4666 = 0;
         cudaEvent_t *pevents = NULL;
         
         if (ctx->profiling && !ctx->profiling_paused) {
@@ -6409,29 +6413,30 @@ static int futrts_entry_main(struct futhark_context *ctx,
             grid_MD[perm[1]] = 1;
             grid_MD[perm[2]] = 1;
             for (int devID = 0; devID < ctx->cuda.device_count; devID++) {
+                int device_id = devID;
+                
                 if (ctx->debugging) {
                     fprintf(ctx->log,
                             "Launching %s on Device %d with grid size [%ld, %ld, %ld] and block size [%ld, %ld, %ld]; shared memory: %d bytes.\n",
-                            "main.segmap_4639", devID,
+                            "main.segmap_4639", device_id,
                             (long) (segmap_usable_groups_4636 /
                                     ctx->cuda.device_count + 1), (long) 1,
                             (long) 1, (long) segmap_group_sizze_4635, (long) 1,
                             (long) 1, (int) 0);
-                    time_start_4664 = get_wall_time();
+                    time_start_4665 = get_wall_time();
                 }
                 
-                int device_id = devID;
-                void *kernel_args_4663[] = {&device_id, &device_count,
-                                            &ctx->global_failure, &n_4619,
-                                            &segmap_usable_groups_4636,
-                                            &kernel_arg_4666, &kernel_arg_4667};
+                void *kernel_args_4664[] = {&device_id, &device_count,
+                                            &page_size, &ctx->global_failure,
+                                            &n_4619, &segmap_usable_groups_4636,
+                                            &kernel_arg_4667, &kernel_arg_4668};
                 
                 CUDA_SUCCEED_FATAL(cuCtxPushCurrent(ctx->cuda.contexts[devID]));
                 CUDA_SUCCEED_FATAL(cuLaunchKernel(ctx->mainzisegmap_4639_MD[devID],
                                                   grid_MD[0], grid_MD[1],
                                                   grid_MD[2],
                                                   segmap_group_sizze_4635, 1, 1,
-                                                  0, NULL, kernel_args_4663,
+                                                  0, NULL, kernel_args_4664,
                                                   NULL));
                 // This synchronisation is placed here to ensure that the same level
                 CUDA_SUCCEED_FATAL(cuEventRecord(ctx->cuda.kernel_done[devID *
@@ -6458,12 +6463,12 @@ static int futrts_entry_main(struct futhark_context *ctx,
                         "main.segmap_4639", (long) segmap_usable_groups_4636,
                         (long) 1, (long) 1, (long) segmap_group_sizze_4635,
                         (long) 1, (long) 1, (int) 0);
-                time_start_4664 = get_wall_time();
+                time_start_4665 = get_wall_time();
             }
             CUDA_SUCCEED_OR_RETURN(cuLaunchKernel(ctx->mainzisegmap_4639,
                                                   grid[0], grid[1], grid[2],
                                                   segmap_group_sizze_4635, 1, 1,
-                                                  0, NULL, kernel_args_4663,
+                                                  0, NULL, kernel_args_4664,
                                                   NULL));
         }
         if (pevents != NULL) {
@@ -6479,17 +6484,17 @@ static int futrts_entry_main(struct futhark_context *ctx,
         }
         if (ctx->debugging) {
             CUDA_SUCCEED_FATAL(cuCtxSynchronize());
-            time_end_4665 = get_wall_time();
+            time_end_4666 = get_wall_time();
             fprintf(ctx->log, "Kernel %s runtime: %ldus\n", "main.segmap_4639",
-                    time_end_4665 - time_start_4664);
+                    time_end_4666 - time_start_4665);
         }
     }
     if (ctx->debugging)
         fprintf(ctx->log, "%s\n", "");
     if (memblock_set_device(ctx, &mem_out_4649, &mem_4647, "mem_4647") != 0)
         return 1;
-    (*mem_out_p_4662).references = NULL;
-    if (memblock_set_device(ctx, &*mem_out_p_4662, &mem_out_4649,
+    (*mem_out_p_4663).references = NULL;
+    if (memblock_set_device(ctx, &*mem_out_p_4663, &mem_out_4649,
                             "mem_out_4649") != 0)
         return 1;
     
