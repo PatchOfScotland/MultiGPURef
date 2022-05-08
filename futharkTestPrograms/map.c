@@ -5790,13 +5790,13 @@ struct futhark_context *futhark_context_new(struct futhark_context_config *cfg)
     
     // Since the Global failure is shared, each device needs it 
     CUDA_SUCCEED_FATAL(cuMemAllocManaged(&ctx->global_failure,
-                                         ctx->cuda.device_count * page_size,
-                                         CU_MEM_ATTACH_GLOBAL));
+                                         ctx->cuda.device_count *
+                                         ctx->page_size, CU_MEM_ATTACH_GLOBAL));
     CUDA_SUCCEED_FATAL(cuMemcpyHtoD(ctx->global_failure, &no_error,
                                     sizeof(no_error)));
     CUDA_SUCCEED_FATAL(cuMemAllocManaged(&ctx->global_failure_args,
-                                         ctx->cuda.device_count * page_size,
-                                         CU_MEM_ATTACH_GLOBAL));
+                                         ctx->cuda.device_count *
+                                         ctx->page_size, CU_MEM_ATTACH_GLOBAL));
     CUDA_SUCCEED_FATAL(cuModuleGetFunction(&ctx->mainzisegmap_4639,
                                            ctx->cuda.module,
                                            "mainzisegmap_4639"));
