@@ -5401,6 +5401,16 @@ static void hint_prefetch_variable_array(
     }
 }
 
+static void hint_readonly_array(struct cuda_context *ctx, 
+                                CUdeviceptr mem, size_t count){
+  //Device argument is ignore for Read mostly hint
+  CUDA_SUCCEED_FATAL(cuMemAdvise(mem, count, CU_MEM_ADVISE_SET_READ_MOSTLY, 
+                                 ctx->devices[0]));
+  for(int device_id = 0; device_id < ctx->device_count; device_id++){
+    CUDA_SUCCEED_FATAL(cuMemPrefetchAsync(
+      mem, count, ctx->devices[device_id], NULL));
+  }
+}
 
 static CUresult cuda_alloc(struct cuda_context *ctx, FILE *log,
                            size_t min_size, const char *tag, CUdeviceptr *mem_out) {
@@ -5444,7 +5454,9 @@ static CUresult cuda_alloc(struct cuda_context *ctx, FILE *log,
     }
     res = cuMemAllocManaged(mem_out, min_size, CU_MEM_ATTACH_GLOBAL);
   }
-  hint_prefetch_variable_array(ctx, *mem_out, min_size);
+  if(min_size > sysconf(_SC_PAGESIZE))
+    hint_prefetch_variable_array(ctx, *memout, min_size);
+
   return res;
 }
 
@@ -5482,17 +5494,6 @@ static CUresult cuda_free_all(struct cuda_context *ctx) {
   return CUDA_SUCCESS;
 }
 
-
-static void hint_readonly_array(struct cuda_context *ctx, 
-                                CUdeviceptr mem, size_t count){
-  //Device argument is ignore for Read mostly hint
-  CUDA_SUCCEED_FATAL(cuMemAdvise(mem, count, CU_MEM_ADVISE_SET_READ_MOSTLY, 
-                                 ctx->devices[0]));
-  for(int device_id = 0; device_id < ctx->device_count; device_id++){
-    CUDA_SUCCEED_FATAL(cuMemPrefetchAsync(
-      mem, count, ctx->devices[device_id], NULL));
-  }
-}
 
 // End of cuda.h.
 
