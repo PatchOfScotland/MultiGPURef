@@ -4,9 +4,14 @@
 #define ITERATIONS 25
 #define BLOCKSIZE 256
 #define EPSILON 1e-5
-#define ELEMS_PER_THREAD    9
+#define ELEMS_PER_THREAD 9
 #define DEBUG_INFO true
+#define WARP 32
+#define lgWARP 5
 
+#include "cuda.h"
+#include "cuda_runtime.h"
+#include "cuda_runtime_api.h"
 
 typedef unsigned int uint32_t;
 typedef int           int32_t;
@@ -33,14 +38,14 @@ __device__ uint32_t counter = 0;
 
 int gpuaAssert(cudaError_t code) {
   if (code != cudaSuccess) {
-    
+
             fprintf(stderr,                                                                 \
                     "ERROR: CUDA RT call in line %d of file %s failed "              \
                     "with "                                                                 \
                     "%s (%d).\n",                                                           \
                   __LINE__, __FILE__, cudaGetErrorString(code), code); \
             return( code );                                                             \
-    } 
+    }
   return 0;
 }
 

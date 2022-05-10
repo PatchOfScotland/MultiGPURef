@@ -1,108 +1,126 @@
 #include <iostream>
 #include <fstream>
-#include "constants.cu.h"
-#include "helpers.cu.h"
-#include "atomic.cu"
+#include <algorithm>
+#include <cmath>
+#include <cstdio>
+#include <sstream>
+#include <cstdlib>
+#include <unistd.h>
+#include "lib/constants.cu.h"
+#include "lib/helpers.cu.h"
+#include "lib/atomic.cu"
 
-#define THREADSSIZE 1e7
+#define THREADSSIZE 10000000
 
+typedef int funcType;
 
-int main(int argc, const char** argv){
-
-    std::ofstream output;
-
-    if (argc == 2){
-        output.open(argv[1]);
-    } else if (argc > 2) {
-        std::cout << "Usage filename\n";
-        exit(1);
-    } else {
-        output.open("/dev/null");
+template <typename T>
+T get_argval(char** begin, char** end, const std::string& arg, const T default_val) {
+    T argval = default_val;
+    char** itr = std::find(begin, end, arg);
+    if (itr != end && ++itr != end) {
+        std::istringstream inbuf(*itr);
+        inbuf >> argval;
     }
-    
-    EnablePeerAccess(); 
-    
-    int* single_atomic_address;
-    int* single_atomic_system_address;
-    int* multi_atomic_address;
-    int* multi_atomic_system_address;
+    return argval;
+}
 
-    cudaError_t e;
+bool get_arg(char** begin, char** end, const std::string& arg) {
+    char** itr = std::find(begin, end, arg);
+    if (itr != end) {
+        return true;
+    }
+    return false;
+}
 
-    CUDA_RT_CALL(cudaMallocManaged(&single_atomic_address, sizeof(int)));
-    CUDA_RT_CALL(cudaMallocManaged(&multi_atomic_address, sizeof(int)));
-    CUDA_RT_CALL(cudaMallocManaged(&single_atomic_system_address, sizeof(int)));
-    CUDA_RT_CALL(cudaMallocManaged(&multi_atomic_system_address, sizeof(int)));
+int main(int argc, char* argv[]){
+    int64_t threads = get_argval<int64_t>(argv, argv + argc, "-n", THREADSSIZE);
+    size_t iterations = get_argval<size_t>(argv, argv + argc, "-iter", ITERATIONS);
+    const std::string outputFile = get_argval<std::string>(argv, argv + argc, "-output", "data/atomic_bench.csv");
+    std::ofstream File(outputFile);
 
-    for(int run = 0; run < ITERATIONS + 1; run++){
+    initHwd();
+    EnablePeerAccess();
 
-        cudaEvent_t single_atomic_start;
-        cudaEvent_t single_system_atomic_start;
-        cudaEvent_t multi_atomic_start;
-        cudaEvent_t multi_system_atomic_start;
+    int Device;
+    int DeviceCount;
+    cudaGetDevice(&Device);
+    cudaGetDeviceCount(&DeviceCount);
 
-        cudaEvent_t single_atomic_stop;
-        cudaEvent_t single_system_atomic_stop;
-        cudaEvent_t multi_atomic_stop;
-        cudaEvent_t multi_system_atomic_stop;
+    funcType* address;
 
-        CUDA_RT_CALL(cudaEventCreate(&single_atomic_start));
-        CUDA_RT_CALL(cudaEventCreate(&single_system_atomic_start));
-        CUDA_RT_CALL(cudaEventCreate(&multi_atomic_start));
-        CUDA_RT_CALL(cudaEventCreate(&multi_system_atomic_start));
+    CUDA_RT_CALL(cudaMallocManaged(&address, sizeof(funcType)));
 
-        CUDA_RT_CALL(cudaEventCreate(&single_atomic_stop));
-        CUDA_RT_CALL(cudaEventCreate(&single_system_atomic_stop));
-        CUDA_RT_CALL(cudaEventCreate(&multi_atomic_stop));
-        CUDA_RT_CALL(cudaEventCreate(&multi_system_atomic_stop));
+    float* single_gpu_ms = (float*)calloc(iterations, sizeof(float));
+    float* single_gpu_system_ms = (float*)calloc(iterations, sizeof(float));
+    float* multi_gpu_ms = (float*)calloc(iterations, sizeof(float));
+    float* multi_gpu_system_ms = (float*)calloc(iterations, sizeof(float));
 
-        CUDA_RT_CALL(cudaEventRecord(single_atomic_start));
-        e = singleGPU::atomicTest(single_atomic_address, THREADSSIZE);
-        CUDA_RT_CALL(e);
-        DeviceSyncronize();
-        CUDA_RT_CALL(cudaEventRecord(single_atomic_stop));
-        
-        CUDA_RT_CALL(cudaEventRecord(single_system_atomic_start));
-        e = singleGPU::atomicSystemTest(single_atomic_system_address, THREADSSIZE);
-        CUDA_RT_CALL(e);
-        DeviceSyncronize();
-        CUDA_RT_CALL(cudaEventRecord(single_system_atomic_stop));
-
-        CUDA_RT_CALL(cudaEventRecord(multi_atomic_start));
-        e = multiGPU::atomicTest(multi_atomic_address, THREADSSIZE);
-        DeviceSyncronize();
-        CUDA_RT_CALL(cudaEventRecord(multi_atomic_stop));
-
-        CUDA_RT_CALL(cudaEventRecord(multi_system_atomic_start));
-        e = multiGPU::atomicSystemTest(multi_atomic_system_address, THREADSSIZE);
-        CUDA_RT_CALL(e);
-        DeviceSyncronize();
-        CUDA_RT_CALL(cudaEventRecord(multi_system_atomic_stop));
-
-        float ms_single;
-        float ms_single_system;
-        float ms_multi;
-        float ms_multi_system;
-
-        cudaEventElapsedTime(&ms_single, single_atomic_start, single_atomic_stop);
-        cudaEventElapsedTime(&ms_single_system, single_system_atomic_start, single_system_atomic_stop);
-        cudaEventElapsedTime(&ms_multi, multi_atomic_start, multi_atomic_stop);
-        cudaEventElapsedTime(&ms_multi_system, multi_system_atomic_start, multi_system_atomic_stop);
-
-        output << ms_single << ", " << ms_single_system << ", " << ms_multi << ", " << ms_multi_system << "\n";
-
-        cudaEventDestroy(single_atomic_start);
-        cudaEventDestroy(single_system_atomic_start);
-        cudaEventDestroy(multi_atomic_start);
-        cudaEventDestroy(multi_system_atomic_start);
-
-        cudaEventDestroy(single_atomic_stop);
-        cudaEventDestroy(single_system_atomic_stop);
-        cudaEventDestroy(multi_atomic_stop);
-        cudaEventDestroy(multi_system_atomic_stop);
-
-
+    { // Single GPU atomic
+        void* args[] = { &address, &threads };
+        cudaError_t (*function)(void**) = &singleGPU::atomicTest;
+        benchmarkFunction(function, args, single_gpu_ms, iterations);
+        CUDA_RT_CALL(cudaMemset(address, 0, sizeof(funcType)));
+        function(args);
+        CUDA_RT_CALL(cudaDeviceSynchronize());
+        if (*address == threads * 100){
+            std::cout << "Single GPU is valid\n";
+        } else {
+            std::cout << "Single GPU is invalid\n";
+        }
+    }
+    { // Single GPU system atomic
+        void* args[] = { &address, &threads };
+        cudaError_t (*function)(void**) = &singleGPU::atomicSystemTest;
+        benchmarkFunction(function, args, single_gpu_system_ms, iterations);
+        CUDA_RT_CALL(cudaMemset(address, 0, sizeof(funcType)));
+        function(args);
+        CUDA_RT_CALL(cudaDeviceSynchronize());
+        if (*address == threads * 100){
+            std::cout << "Single GPU system is valid\n";
+        } else {
+            std::cout << "Single GPU system is invalid\n";
+        }
+    }
+    { // Multi GPU atomic
+        void* args[] = { &address, &threads };
+        cudaError_t (*function)(void**) = &multiGPU::atomicTest;
+        benchmarkFunction(function, args, multi_gpu_ms, iterations);
+        CUDA_RT_CALL(cudaMemset(address, 0, sizeof(funcType)));
+        function(args);
+        CUDA_RT_CALL(cudaDeviceSynchronize());
+        if (*address == threads * 100){
+            std::cout << "Multi GPU is valid\n";
+        } else {
+            std::cout << "Multi GPU is invalid\n";
+        }
+    }
+    { // Multi GPU system atomic
+        void* args[] = { &address, &threads };
+        cudaError_t (*function)(void**) = &multiGPU::atomicSystemTest;
+        benchmarkFunction(function, args, multi_gpu_system_ms, iterations);
+        CUDA_RT_CALL(cudaMemset(address, 0, sizeof(funcType)));
+        function(args);
+        CUDA_RT_CALL(cudaDeviceSynchronize());
+        if (*address == threads * 100){
+            std::cout << "Multi GPU system is valid\n";
+        } else {
+            std::cout << "Multi GPU system is invalid\n";
+        }
     }
 
+    for(int run = 0; run < iterations; run++){
+        File << single_gpu_ms << ", " << single_gpu_system_ms << ", "
+                << multi_gpu_ms << ", " << multi_gpu_system_ms << "\n";
+    }
 
+    File.close();
+
+    CUDA_RT_CALL(cudaFree(address));
+    free(single_gpu_ms);
+    free(single_gpu_system_ms);
+    free(multi_gpu_ms);
+    free(multi_gpu_system_ms);
+
+    return 0;
 }

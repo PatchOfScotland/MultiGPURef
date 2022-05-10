@@ -1,57 +1,58 @@
 #ifndef ATOMIC_H
 #define ATOMIC_H
 
-#include <iostream>
-#include <fstream>
-
-
+#include "constants.cu.h"
+#include "helpers.cu.h"
+#include "cuda_runtime_api.h"
 
 namespace singleGPU {
     __global__ void atomicKernel(int* add, int64_t threadsMax){
         if ( blockDim.x * blockIdx.x + threadIdx.x < threadsMax ) {
             for(int i = 0; i < 100; i++){
                 atomicAdd(add, 1);
-
             }
         }
-    }    
+    }
 
     __global__ void atomicSystemKernel(int* add, int64_t threadsMax){
         if ( blockDim.x * blockIdx.x + threadIdx.x < threadsMax ) {
             for(int i = 0; i < 100; i++){
                 atomicAdd_system(add, 1);
             }
-            
+
         }
-        
     }
 
-    cudaError_t atomicTest(int* add, int threads){
+    cudaError_t atomicTest(void** args){
+        int* add = *(int**)args[0];
+        int threads = *(int*)args[1];
+
         const int blockSize = 1024;
         const int numBlocks = (threads + blockSize - 1) / blockSize;
         atomicKernel<<<numBlocks, blockSize>>>(add, threads);
         return cudaGetLastError();
     }
 
-    cudaError_t atomicSystemTest(int* add, int64_t threads){
+    cudaError_t atomicSystemTest(void** args){
+        int* add = *(int**)args[0];
+        int64_t threads = *(int*)args[1];
+
         const int blockSize = 1024;
         const int numBlocks = (threads + blockSize - 1) / blockSize;
         atomicSystemKernel<<<numBlocks, blockSize>>>(add, threads);
         return cudaGetLastError();
     }
 
-}
+} // namespace singleGPU
 
 namespace multiGPU {
-
-
     __global__ void atomicKernel(int* add, int64_t threadsMax){
         if ( blockDim.x * blockIdx.x + threadIdx.x < threadsMax ) {
             for(int i = 0; i < 100; i++){
                 atomicAdd(add, 1);
             }
         }
-    }    
+    }
 
     __global__ void atomicSystemKernel(int* add, int64_t threadsMax){
         if ( blockDim.x * blockIdx.x + threadIdx.x < threadsMax ) {
@@ -61,7 +62,10 @@ namespace multiGPU {
         }
     }
 
-    cudaError_t atomicTest(int* address, int threads){
+
+    cudaError_t atomicTest(void** args){
+        int* address = *(int**)args[0];
+        int threads = *(int*)args[1];
         int Device;
         cudaGetDevice(&Device);
         int DeviceCount;
@@ -76,13 +80,13 @@ namespace multiGPU {
             int64_t threadsPerDevice = (devID < highDevices) ? threadsPerDevice_high : threadsPerDevice_low;
             atomicKernel<<<numBlocks, blockSize>>>(address, threadsPerDevice);
         }
-        
         cudaSetDevice(Device);
-        
         return cudaGetLastError();
     }
 
-    cudaError_t atomicSystemTest(int* address, int threads){
+    cudaError_t atomicSystemTest(void** args){
+        int* address = *(int**)args[0];
+        int threads = *(int*)args[1];
         int Device;
         cudaGetDevice(&Device);
         int DeviceCount;
@@ -101,10 +105,7 @@ namespace multiGPU {
         return cudaGetLastError();
     }
 
-}
-
-
-
+} // namespace multiGPU
 
 
 #endif

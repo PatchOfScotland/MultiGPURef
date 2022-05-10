@@ -5,15 +5,30 @@
 #include <cstdio>
 #include <sstream>
 #include <cstdlib>
-#include "constants.cu.h"
-#include "helpers.cu.h"
-#include "scan.cu"
+#include <unistd.h>
+#include "lib/constants.cu.h"
+#include "lib/helpers.cu.h"
+#include "lib/scan.cu"
 
 
-#define DEFAULT_N 1e8
-#define DEFAULT_OUTPUTFILE "data/scan_bench.csv"
+#define DEFAULT_N 1e9
 
 typedef int funcType;
+
+template<class T>
+class Add {
+  public:
+    typedef T InpElTp;
+    typedef T RedElTp;
+    static const bool commutative = true;
+    static __device__ __host__ inline T identInp()                    { return (T)0;    }
+    static __device__ __host__ inline T mapFun(const T& el)           { return el;      }
+    static __device__ __host__ inline T identity()                    { return (T)0;    }
+    static __device__ __host__ inline T apply(const T t1, const T t2) { return t1 + t2; }
+
+    static __device__ __host__ inline bool equals(const T t1, const T t2) { return (t1 == t2); }
+    static __device__ __host__ inline T remVolatile(volatile T& t)    { T res = t; return res; }
+};
 
 template <typename T>
 T get_argval(char** begin, char** end, const std::string& arg, const T default_val) {
@@ -35,38 +50,31 @@ bool get_arg(char** begin, char** end, const std::string& arg) {
 }
 
 int main(int argc, char* argv[]) {
-    const int64_t N = get_argval<int>(argv, argv + argc, "-x", DEFAULT_N);
-    const std::string outputFile = get_argval<std::string>(argv, argv + argc, "-output", DEFAULT_OUTPUTFILE);
- 
+    int64_t N = get_argval<int64_t>(argv, argv + argc, "-x", DEFAULT_N);
+    size_t iterations = get_argval<size_t>(argv, argv + argc, "-iter", ITERATIONS);
+    const std::string outputFile = get_argval<std::string>(argv, argv + argc, "-output", "data/scan_bench.csv");
+    const size_t bufferSize = N*sizeof(int);
+    int pageSize = sysconf(_SC_PAGESIZE);
+
     std::ofstream File(outputFile);
 
     initHwd();
     EnablePeerAccess();
 
+    int Device;
+    cudaGetDevice(&Device);
     int DeviceCount;
     cudaGetDeviceCount(&DeviceCount);
 
     funcType* data_in;
-    funcType* data_in_md;
-    funcType* data_out_single;
-    funcType* data_out_multi_device;
+    funcType* data_out;
     funcType* data_tmp;
-    funcType* data_tmp_multi_device;
 
-    cudaMallocManaged(&data_in, N*sizeof(funcType));
-    cudaMallocManaged(&data_in_md, N*sizeof(funcType));
-    cudaMallocManaged(&data_out_single, N*sizeof(funcType));
-    cudaMallocManaged(&data_out_multi_device, N*sizeof(funcType));
-    cudaMallocManaged(&data_tmp, MAX_BLOCK*sizeof(funcType));
-    cudaMallocManaged(&data_tmp_multi_device, MAX_BLOCK*sizeof(funcType));
+    CUDA_RT_CALL(cudaMallocManaged(&data_in, bufferSize));
+    CUDA_RT_CALL(cudaMallocManaged(&data_out, bufferSize));
+    CUDA_RT_CALL(cudaMallocManaged(&data_tmp, pageSize*DeviceCount));
 
-    funcType* device_data_in;
-    funcType* device_data_out;
-    funcType* aggregates;
-    funcType* inc_prefix;
-    uint8_t*  flags;
-    
-    cudaEvent_t syncEvent[DeviceCount];
+    cudaEvent_t* syncEvent = (cudaEvent_t*)malloc(sizeof(cudaEvent_t)* DeviceCount);
     cudaEvent_t scan1blockEvent;
 
     cudaEventCreateWithFlags(&scan1blockEvent, cudaEventDisableTiming);
@@ -75,80 +83,67 @@ int main(int argc, char* argv[]) {
       cudaSetDevice(devID);
       cudaEventCreateWithFlags(&syncEvent[devID], cudaEventDisableTiming);
     }
-
-
-    cudaMalloc(&device_data_in, N*sizeof(funcType));
-    cudaMalloc(&device_data_out, N*sizeof(funcType));
-    AllocateFlagArray<Add<funcType> >(&flags, &aggregates, &inc_prefix, N);
+    cudaSetDevice(Device);
 
     init_array_cpu<funcType>(data_in, 1337, N);
-    cudaMemcpy(device_data_in, data_in, N*sizeof(funcType), cudaMemcpyDefault);
-    cudaMemcpy(data_in_md, data_in, N*sizeof(funcType), cudaMemcpyDefault);
+    DeviceSyncronize();
 
-    DeviceSyncronize();    
+    funcType* correctData = (funcType*)calloc(N,sizeof(funcType));
 
-    for(int run = 0; run < ITERATIONS + 1; run++){
-        float ms_single, ms_2pass, ms_MD;
-        
-        cudaEvent_t start_single;
-        cudaEvent_t stop_single;
+    funcType accum = 0;
+    for(long i = 0; i < N; i++){
+        accum += data_in[i];
+        correctData[i] = accum;
+    }
 
-        CUDA_RT_CALL(cudaEventCreate(&start_single));
-        CUDA_RT_CALL(cudaEventCreate(&stop_single));
+    float* scan_single_ms = (float*)calloc(iterations,sizeof(float));
+    float* scan_MD_NoPS = (float*)calloc(iterations,sizeof(float));
+    float* scan_MD_PS = (float*)calloc(iterations,sizeof(float));
 
-        CUDA_RT_CALL(cudaEventRecord(start_single));
-        scanInc< Add < funcType > >(1024, N, data_out_single, data_in, data_tmp);
-        CUDA_RT_CALL(cudaEventRecord(stop_single));
-        DeviceSyncronize();
-        CUDA_RT_CALL(cudaEventElapsedTime(&ms_single, start_single, stop_single));
+    { //Single Core
 
-        cudaEventDestroy(start_single);
-        cudaEventDestroy(stop_single);
+        unsigned int blockSize = 1024;
+        void *args[] = {&blockSize, &N, &data_out, &data_in, &data_tmp};
+        cudaError_t (*function)(void**) = &singleGPU::scanInc<Add <funcType> >;
+        benchmarkFunction(function, args,scan_single_ms, iterations);
+        if (compare_arrays<funcType>(data_out, correctData, N)){
+            std::cout << "Single GPU is valid\n";
+        } else {
+            std::cout << "Single GPU is invalid\n";
+        }
+    }
 
-        cudaEvent_t start_2pass;
-        cudaEvent_t stop_2pass;
+    { //Multi GPU
+        void *args[] = {&N, &data_out, &data_in, &data_tmp, &syncEvent, &scan1blockEvent};
+        cudaError_t (*function)(void**) = &multiGPU::scanIncVoidArgsMD<Add <funcType>>;
+        benchmarkFunction(function, args,scan_MD_NoPS, ITERATIONS);
+        if (compare_arrays<funcType>(data_out, correctData, N)){
+            std::cout << "Multi GPU is valid\n";
+        } else {
+            std::cout << "Multi GPU is invalid\n";
+        }
+    }
 
-        CUDA_RT_CALL(cudaEventCreate(&start_2pass));
-        CUDA_RT_CALL(cudaEventCreate(&stop_2pass));
+    { //Multi GPU Page
+        void *args[] = {&N, &data_out, &data_in, &data_tmp, &syncEvent, &scan1blockEvent, &pageSize};
+        cudaError_t (*function)(void**) = &multiGPU::scanIncVoidArgsMDPS<Add <funcType>>;
+        benchmarkFunction(function, args,scan_MD_PS, ITERATIONS);
+        if (compare_arrays<funcType>(data_out, correctData, N)){
+            std::cout << "Multi GPU with page size is valid\n";
+        } else {
+            std::cout << "Multi GPU With page size is invalid\n";
+        }
+    }
 
-        CUDA_RT_CALL(cudaEventRecord(start_2pass));
-        scanWrapper< Add <funcType> >(device_data_out, device_data_in, N, flags, aggregates, inc_prefix);
-        CUDA_RT_CALL(cudaEventRecord(stop_2pass));
-        DeviceSyncronize();
-        CUDA_RT_CALL(cudaEventElapsedTime(&ms_2pass, start_2pass, stop_2pass));
-
-        cudaEventDestroy(start_2pass);
-        cudaEventDestroy(stop_2pass);
-
-        cudaEvent_t start_MD;
-        cudaEvent_t stop_MD;
-
-        CUDA_RT_CALL(cudaEventCreate(&start_MD));
-        CUDA_RT_CALL(cudaEventCreate(&stop_MD));
-
-        CUDA_RT_CALL(cudaEventRecord(start_MD));
-        scanInc_multiDevice< Add < funcType > >(1024, N, data_out_single, data_in_md, data_tmp, syncEvent, scan1blockEvent);
-        CUDA_RT_CALL(cudaEventRecord(stop_MD));
-        DeviceSyncronize();
-        CUDA_RT_CALL(cudaEventElapsedTime(&ms_MD, start_MD, stop_MD));
-
-        cudaEventDestroy(start_MD);
-        cudaEventDestroy(stop_MD);
-
-        if(run != 0) File << ms_single << ", " << ms_2pass << ", " << ms_MD << "\n";
+    for(int run = 0; run < iterations; run++){
+        File << scan_single_ms[run] << ", " << scan_MD_NoPS[run] << ", " << scan_MD_PS[run] << "\n";
     }
 
     File.close();
 
-    cudaFree(data_in);
-    cudaFree(data_out_single);
-    cudaFree(data_out_multi_device);
-    cudaFree(data_tmp);
-    cudaFree(data_tmp_multi_device);
-    cudaFree(device_data_in);
-    cudaFree(aggregates);
-    cudaFree(inc_prefix);
-    cudaFree(flags);
+    CUDA_RT_CALL(cudaFree(data_in));
+    CUDA_RT_CALL(cudaFree(data_tmp));
+    CUDA_RT_CALL(cudaFree(data_out));
 
 
     return 0;

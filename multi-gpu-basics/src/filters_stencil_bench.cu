@@ -5,15 +5,20 @@
 #include <cstdio>
 #include <sstream>
 #include <cstdlib>
-#include "constants.cu.h"
-#include "helpers.cu.h"
-#include "filters_stencil.cu"
+#include "lib/constants.cu.h"
+#include "lib/helpers.cu.h"
+#include "lib/MemoryManagement.cu"
+#include "lib/filter_stencil.cu"
 
 #define BLUR_IMG "blurImage.ppm"
 #define CLEAR_IMG "clearImage.ppm"
 #define OUTPUT_FILE_PATH "data/gaussian_blur.csv"
 
 #define DEFAULT_STD 1.0
+#define X 8192
+#define Y 8192
+#define CONVELUTION_SIZE 32
+#define TOL 1e-6
 
 template <typename T>
 T get_argval(char** begin, char** end, const std::string& arg, const T default_val) {
@@ -50,96 +55,77 @@ void DrawPPMPicture(std::string filename, T* imageData, int64_t image_height, in
 }
 
 
-
-
 int main(int argc, char** argv){
-
-    const int x = get_argval<int>(argv, argv + argc, "-x", X);
-    const int y = get_argval<int>(argv, argv + argc, "-y", Y);
-    const float stdDev = get_argval<float>(argv, argv + argc, "-std", DEFAULT_STD);
-    const std::string OutputFile = get_argval<std::string>(argv, argv + argc, "-output", OUTPUT_FILE_PATH);
+    int x = get_argval<int>(argv, argv + argc, "-x", X);
+    int y = get_argval<int>(argv, argv + argc, "-y", Y);
+    int convelution_size = get_argval<int>(argv, argv + argc, "-conv", CONVELUTION_SIZE);
+    int iterations = get_argval<int>(argv, argv + argc, "-iter", ITERATIONS);
+    float stdDev = get_argval<float>(argv, argv + argc, "-std", DEFAULT_STD);
+    std::string OutputFile = get_argval<std::string>(argv, argv + argc, "-output", OUTPUT_FILE_PATH);
 
     std::ofstream File(OutputFile);
 
     float* src_image;
     float* single_image;
-    float* dst_image;
-    float* dst_image_no_hints;
+    float* multi_image;
 
     size_t imageSize = x*y;
 
     cudaMallocManaged(&src_image, imageSize*sizeof(float));
     cudaMallocManaged(&single_image, imageSize*sizeof(float));
-    cudaMallocManaged(&dst_image, imageSize*sizeof(float));
-    cudaMallocManaged(&dst_image_no_hints, imageSize*sizeof(float));
-
-    init_array_float<float>(src_image, 1337, imageSize);    
-
-    for(int run = 0; run < ITERATIONS + 1; run++){
-        float ms_single, ms_multi, ms_no_hints;
-
-        cudaEvent_t start_single;
-        cudaEvent_t stop_single;
-
-        CUDA_RT_CALL(cudaEventCreate(&start_single));
-        CUDA_RT_CALL(cudaEventCreate(&stop_single));
-
-        CUDA_RT_CALL(cudaEventRecord(start_single));
-        cudaError_t e = singleGPU::gaussian_blur<16,32>(src_image, single_image, stdDev, y, x);
-        CUDA_RT_CALL(e);
-        CUDA_RT_CALL(cudaEventRecord(stop_single));
-        DeviceSyncronize();
-        CUDA_RT_CALL(cudaEventElapsedTime(&ms_single, start_single, stop_single));
+    cudaMallocManaged(&multi_image, imageSize*sizeof(float));
 
 
-        cudaEvent_t start_multi;
-        cudaEvent_t stop_multi;
+    init_array_float<float>(src_image, 1337, imageSize);
 
-        CUDA_RT_CALL(cudaEventCreate(&start_multi));
-        CUDA_RT_CALL(cudaEventCreate(&stop_multi));
+    float* single_ms = (float*)calloc(iterations, sizeof(float));
+    float* multi_image_no_hints_ms = (float*)calloc(iterations, sizeof(float));
+    float* multi_image_ms = (float*)calloc(iterations, sizeof(float));
 
-        CUDA_RT_CALL(cudaEventRecord(start_multi));
-        e = multiGPU::gaussian_blur<16, 32>(src_image, dst_image, stdDev, y, x);
-        CUDA_RT_CALL(e);
-        CUDA_RT_CALL(cudaEventRecord(stop_multi));
-        DeviceSyncronize();
-        CUDA_RT_CALL(cudaEventElapsedTime(&ms_multi, start_multi, stop_multi));
-
-        cudaEvent_t start_no_hints;
-        cudaEvent_t stop_no_hints;
-
-        CUDA_RT_CALL(cudaEventCreate(&start_no_hints));
-        CUDA_RT_CALL(cudaEventCreate(&stop_no_hints));
-
-        CUDA_RT_CALL(cudaEventRecord(start_no_hints));
-        e = multiGPU::gaussian_blur_no_hints<16, 32>(src_image, dst_image_no_hints, stdDev, y, x);
-        CUDA_RT_CALL(e);
-        CUDA_RT_CALL(cudaEventRecord(stop_no_hints));    
-        DeviceSyncronize();
-        CUDA_RT_CALL(cudaEventElapsedTime(&ms_no_hints, start_no_hints, stop_no_hints));
-
-        if(File.is_open() && run != 0){
-            File << ms_single << ", " << ms_multi << ", " << ms_no_hints << "\n";
-        }
-
-
-        cudaEventDestroy(start_no_hints);
-        cudaEventDestroy(stop_no_hints);
-
-        cudaEventDestroy(start_single);
-        cudaEventDestroy(stop_single);
-
-        cudaEventDestroy(stop_multi);
-        cudaEventDestroy(start_multi);
+    { // Single GPU
+        void* args[] = {&src_image, &single_image, &stdDev, &y, &x, &convelution_size};
+        cudaError_t (*function)(void**) = &singleGPU::gaussian_blur;
+        benchmarkFunction(function, args, single_ms, iterations);
+        // Assume that single GPU is correct
+    }
+    {   // Single GPU - No Shared Memory
 
     }
+    { // Multi GPU - No Hints
+        void* args[] = {&src_image, &multi_image, &stdDev, &y, &x, &convelution_size};
+        cudaError_t (*function)(void**) = &multiGPU::gaussian_blur;
+        benchmarkFunction(function, args, multi_image_no_hints_ms, iterations);
+        if(compare_arrays_nummeric<float>(multi_image, single_image, imageSize, TOL)){
+            std::cout << "MultiGPU - No hints - produces same results as single\n";
+        } else {
+            std::cout << "MultiGPU - No hints - produces different results as single\n";
+        }
+    }
 
+
+    hint2DWithBorder(src_image, convelution_size, 32, y, x);
+    hint2DWithBorder(multi_image, 0, 32, y, x);
+    { // Multi GPU
+        void* args[] = {&src_image, &multi_image, &stdDev, &y, &x, &convelution_size};
+        cudaError_t (*function)(void**) = &multiGPU::gaussian_blur;
+        benchmarkFunction(function, args, multi_image_ms, iterations);
+        if(compare_arrays_nummeric<float>(multi_image, single_image, imageSize, TOL)){
+            std::cout << "MultiGPU produces same results as single\n";
+        } else {
+            std::cout << "MultiGPUproduces different results as single\n";
+        }
+    }
+
+    for(int run = 0; run < iterations; run++){
+        File << single_ms[run]
+          << ", " << multi_image_no_hints_ms[run]
+          << ", " << multi_image_ms[run] << "\n";
+    }
     File.close();
 
     cudaFree(src_image);
     cudaFree(single_image);
-    cudaFree(dst_image);
-    cudaFree(dst_image_no_hints);
+    cudaFree(multi_image);
 
 
     return 0;

@@ -189,84 +189,31 @@ void benchmarkFunction(cudaError_t (*function)(void**),void** args, float* runti
     CUDA_RT_CALL(cudaEventDestroy(stop_event));
 }
 
-/*
-namespace multiGPU {
-
-    template<class ElTp, int T>
-    __global__ void iotaMatrixMultiDevice(ElTp* data, int height, int width, int devID){
-        int const tidx = threadIdx.x;
-        int const tidy = threadIdx.y;
-        int const bidx = blockIdx.x;
-        int const bidy = blockIdx.y;
-        int const jjj = bidx * T * T;
-        int const jj  = jjj + tidy * T;
-        int const j   = jj + tidx;
-        int const ii =  gridDim.y * T * devID + bidy * T;
-
-        for(int i = 0; i < T; i++){
-            if ((ii + i) < height && j < width)  {
-                data[(i + ii) * width + j] = (ElTp) (ii + i) * width + j;
-            }
-        }
-    }
-
-
-    template<class ElTp, int T>
-    cudaError_t iotaMatrix_emulate(ElTp* data, int height, int width, int emulatedDevices){
-        dim3 block(T,T,1);
-
-        int grid_x_total = ceil((float)width / (T * T));
-        int grid_y_total = ceil((float)height / (T)); 
-
-        int grid_x = grid_x_total; // Keep this the same value and divide over the Y's
-        int grid_y = (grid_y_total + emulatedDevices - 1) / emulatedDevices; // Same trick to get matching blocksizes
-
-        dim3 grid(grid_x, grid_y, 1);
-
-
-        for(int i = 0; i < emulatedDevices; i++){
-            iotaMatrixMultiDevice< ElTp, T ><<<grid,block>>>(data, height, width, i); 
-        }
-
-
-        return cudaPeekAtLastError();
-    }
-
-    template<class T>
-    __global__ void RandomInitiation(T* data, int seed, size_t N, int DevID){
-        int64_t idx = gridDim.x * blockDim.x * DevID + blockIdx.x * blockDim.x + threadIdx.x;
-        if (idx < N){
-            curandState state;
-            curand_init(seed, idx, 0, &state);
-            data[idx] = (T)((curand(&state)) & 0xF); // Numeric instability 
-        }
-    }
-
-
-    template<class T>
-    cudaError_t init_arr(T* data, unsigned long seed, size_t N){
-        int Device  = -1;
-        cudaGetDevice(&Device);
-        int Devices = -1;
-        cudaGetDeviceCount(&Devices);
-        
-        size_t allocated_per_device = N / Devices + 1; 
-        size_t num_blocks           = (allocated_per_device + BLOCKSIZE - 1 ) / BLOCKSIZE;
-
-        for(int devID = 0; devID < Devices; devID++){
-            cudaSetDevice(devID);
-            RandomInitiation< T ><<< num_blocks, BLOCKSIZE >>>(data, seed, N, devID);
-        }
-        
-        cudaSetDevice(Device);
-
-        return cudaGetLastError();
-    }
-
+uint32_t inline closestMul32(uint32_t x) {
+    return ((x + 31) / 32) * 32;
 }
-*/
 
 
+template<int CHUNK>
+uint32_t getNumBlocks(const uint32_t N, const uint32_t B, uint32_t* num_chunks) {
+    const uint32_t max_inp_thds = (N + CHUNK - 1) / CHUNK;
+    const uint32_t num_thds0    = min(max_inp_thds, MAX_HWDTH);
+
+    const uint32_t min_elms_all_thds = num_thds0 * CHUNK;
+    *num_chunks = max(1, N / min_elms_all_thds);
+
+    const uint32_t seq_chunk = (*num_chunks) * CHUNK;
+    const uint32_t num_thds = (N + seq_chunk - 1) / seq_chunk;
+    const uint32_t num_blocks = (num_thds + B - 1) / B;
+
+    if(num_blocks > MAX_BLOCK) {
+        printf("Broken Assumption: number of blocks %d exceeds maximal block size: %d. Exiting!"
+              , num_blocks, MAX_BLOCK);
+        exit(1);
+    }
+
+    return num_blocks;
+}
 
 
 #endif
