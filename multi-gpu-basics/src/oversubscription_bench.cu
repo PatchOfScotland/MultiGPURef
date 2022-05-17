@@ -1,10 +1,9 @@
 
 
-#include "constants.cu.h"
-#include "helpers.cu.h"
-#include "mmm.cu"
-#include "map.cu"
-#include "scan.cu"
+#include "lib/constants.cu.h"
+#include "lib/helpers.cu.h"
+#include "lib/map.cu"
+
 
 
 typedef int funcType;
@@ -26,9 +25,9 @@ int main(){
     cudaGetDevice(&Device);
 
     cudaMemGetInfo(&freeMem, &totalMem);
-        
 
-    size_t capacity = freeMem / sizeof(funcType); 
+
+    size_t capacity = freeMem / sizeof(funcType);
 
     // Map
 
@@ -36,8 +35,8 @@ int main(){
         size_t arrSize = capacity / 2 * 0.95;
         size_t bufferSize = arrSize*sizeof(funcType);
 
-        funcType* inputMem; 
-        funcType* outputMem; 
+        funcType* inputMem;
+        funcType* outputMem;
         CUDA_RT_CALL(cudaMallocManaged(&inputMem, bufferSize));
         CUDA_RT_CALL(cudaMallocManaged(&outputMem, bufferSize));
 
@@ -58,8 +57,8 @@ int main(){
         size_t arrSize = capacity / 2;
         size_t bufferSize = arrSize*sizeof(funcType);
 
-        funcType* inputMem; 
-        funcType* outputMem; 
+        funcType* inputMem;
+        funcType* outputMem;
         CUDA_RT_CALL(cudaMallocManaged(&inputMem, bufferSize));
         CUDA_RT_CALL(cudaMallocManaged(&outputMem, bufferSize));
 
@@ -80,8 +79,8 @@ int main(){
         size_t arrSize = capacity / 2 * 1.05;
         size_t bufferSize = arrSize*sizeof(funcType);
 
-        funcType* inputMem; 
-        funcType* outputMem; 
+        funcType* inputMem;
+        funcType* outputMem;
         CUDA_RT_CALL(cudaMallocManaged(&inputMem, bufferSize));
         CUDA_RT_CALL(cudaMallocManaged(&outputMem, bufferSize));
 
@@ -97,15 +96,15 @@ int main(){
         CUDA_RT_CALL(cudaFree(inputMem));
         CUDA_RT_CALL(cudaFree(outputMem));
     }
- 
+
     // Map
 
     { // over Subscription Hinted: 0.95
         size_t arrSize = capacity / 2 * 0.95;
         size_t bufferSize = arrSize*sizeof(funcType);
 
-        funcType* inputMem; 
-        funcType* outputMem; 
+        funcType* inputMem;
+        funcType* outputMem;
         CUDA_RT_CALL(cudaMallocManaged(&inputMem, bufferSize));
         CUDA_RT_CALL(cudaMallocManaged(&outputMem, bufferSize));
 
@@ -131,8 +130,8 @@ int main(){
         size_t arrSize = capacity / 2;
         size_t bufferSize = arrSize*sizeof(funcType);
 
-        funcType* inputMem; 
-        funcType* outputMem; 
+        funcType* inputMem;
+        funcType* outputMem;
         CUDA_RT_CALL(cudaMallocManaged(&inputMem, bufferSize));
         CUDA_RT_CALL(cudaMallocManaged(&outputMem, bufferSize));
 
@@ -157,8 +156,8 @@ int main(){
         size_t arrSize = capacity / 2 * 1.05;
         size_t bufferSize = arrSize*sizeof(funcType);
 
-        funcType* inputMem; 
-        funcType* outputMem; 
+        funcType* inputMem;
+        funcType* outputMem;
         CUDA_RT_CALL(cudaMallocManaged(&inputMem, bufferSize));
         CUDA_RT_CALL(cudaMallocManaged(&outputMem, bufferSize));
 

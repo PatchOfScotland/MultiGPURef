@@ -10,8 +10,6 @@
 #include "lib/MemoryManagement.cu"
 #include "lib/filter_stencil.cu"
 
-#define BLUR_IMG "blurImage.ppm"
-#define CLEAR_IMG "clearImage.ppm"
 #define OUTPUT_FILE_PATH "data/gaussian_blur.csv"
 
 #define DEFAULT_STD 1.0

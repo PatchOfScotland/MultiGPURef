@@ -11,6 +11,8 @@
 #include "lib/atomic.cu"
 
 #define THREADSSIZE 10000000
+#define PEER_ACCESS 1
+
 
 typedef int funcType;
 
@@ -36,11 +38,13 @@ bool get_arg(char** begin, char** end, const std::string& arg) {
 int main(int argc, char* argv[]){
     int64_t threads = get_argval<int64_t>(argv, argv + argc, "-n", THREADSSIZE);
     size_t iterations = get_argval<size_t>(argv, argv + argc, "-iter", ITERATIONS);
+    int enablePeerAccess =  get_argval<int>(argv, argv + argc, "-peer", PEER_ACCESS);
     const std::string outputFile = get_argval<std::string>(argv, argv + argc, "-output", "data/atomic_bench.csv");
     std::ofstream File(outputFile);
 
     initHwd();
-    EnablePeerAccess();
+    if (enablePeerAccess)
+        EnablePeerAccess();
 
     int Device;
     int DeviceCount;

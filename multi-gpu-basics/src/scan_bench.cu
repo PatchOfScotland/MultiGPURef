@@ -107,9 +107,9 @@ int main(int argc, char* argv[]) {
         cudaError_t (*function)(void**) = &singleGPU::scanInc<Add <funcType> >;
         benchmarkFunction(function, args,scan_single_ms, iterations);
         if (compare_arrays<funcType>(data_out, correctData, N)){
-            std::cout << "Single GPU is valid\n";
+            std::cout << "Single GPU scan is valid\n";
         } else {
-            std::cout << "Single GPU is invalid\n";
+            std::cout << "Single GPU scan is invalid\n";
         }
     }
 
@@ -118,9 +118,9 @@ int main(int argc, char* argv[]) {
         cudaError_t (*function)(void**) = &multiGPU::scanIncVoidArgsMD<Add <funcType>>;
         benchmarkFunction(function, args,scan_MD_NoPS, ITERATIONS);
         if (compare_arrays<funcType>(data_out, correctData, N)){
-            std::cout << "Multi GPU is valid\n";
+            std::cout << "Multi GPU scan is valid\n";
         } else {
-            std::cout << "Multi GPU is invalid\n";
+            std::cout << "Multi GPU scan is invalid\n";
         }
     }
 
@@ -129,9 +129,9 @@ int main(int argc, char* argv[]) {
         cudaError_t (*function)(void**) = &multiGPU::scanIncVoidArgsMDPS<Add <funcType>>;
         benchmarkFunction(function, args,scan_MD_PS, ITERATIONS);
         if (compare_arrays<funcType>(data_out, correctData, N)){
-            std::cout << "Multi GPU with page size is valid\n";
+            std::cout << "Multi GPU scan with page size is valid\n";
         } else {
-            std::cout << "Multi GPU With page size is invalid\n";
+            std::cout << "Multi GPU scan With page size is invalid\n";
         }
     }
 

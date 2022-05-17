@@ -1,9 +1,10 @@
 #ifndef HELPERS_H
 #define HELPERS_H
 
+#include<cuda.h>
 #include<curand.h>
 #include<curand_kernel.h>
-#include "constants.cu.h"
+#include"constants.cu.h"
 #include<stdio.h>
 #include<stdlib.h>
 #include<unordered_set>
@@ -29,7 +30,7 @@ __global__ void init_arr_kernel_iota(T* data, size_t N){
 template<class T>
 __global__ void init_arr_const(T* data, T con, size_t N){
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
-    if (idx < N) data[idx] = con; 
+    if (idx < N) data[idx] = con;
 }
 
 template<class T>
@@ -54,7 +55,7 @@ void init_array_permutation(T* data, size_t N, size_t max_permutations, unsigned
 }
 
 void init_idxs(int64_t max_val, uint32_t seed, int64_t* idxs, uint64_t numIdxs ){
-
+    srand(seed);
     std::unordered_set<uint64_t> idx_set;
     while(idx_set.size() < numIdxs){
         int64_t elem = rand() % max_val;
@@ -67,6 +68,33 @@ void init_idxs(int64_t max_val, uint32_t seed, int64_t* idxs, uint64_t numIdxs )
         iter++;
     }
 }
+
+void init_idxs_GPU(int64_t max_val, uint32_t seed, int64_t* idxs, uint64_t numIdxs, float localChance){
+    int deviceCount;
+    cudaGetDeviceCount(&deviceCount);
+    int64_t idxs_per_device = numIdxs / deviceCount;
+    int64_t max_val_per_device = max_val / deviceCount;
+
+    srand(seed);
+    std::unordered_set<uint64_t> idx_set;
+    while(idx_set.size() < numIdxs){
+        int elem;
+        if ((float)rand() / RAND_MAX > localChance){
+            elem = rand() % max_val;
+        } else {
+            int64_t offset = idx_set.size() / idxs_per_device;
+            elem = (rand() % max_val_per_device) + (max_val_per_device * offset);
+        }
+        idx_set.insert(elem);
+    }
+
+    uint64_t iter = 0;
+    for(auto it = idx_set.begin(); it != idx_set.end(); ++it){
+        idxs[iter] = *it;
+        iter++;
+    }
+}
+
 
 template<class T>
 void init_array_cpu(T* data, unsigned int seed, size_t N){
@@ -155,7 +183,7 @@ void printMatrix(T* A, size_t H, size_t W){
             (j == W-1) ? std::cout << A[i*H + j] : std::cout << A[i*H + j] << ", ";
         std::cout << "\n";
     }
-} 
+}
 
 void DeviceSyncronize(){
     int Device;

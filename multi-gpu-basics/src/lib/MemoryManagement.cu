@@ -35,6 +35,56 @@ void hint1D(T* arr, int blockSize, size_t N){
   }
 }
 
+template <class T>
+void NaiveFetch(T arr, int64_t N){
+  int device;
+  cudaGetDevice(&device);
+  int deviceCount;
+  cudaGetDeviceCount(&deviceCount);
+  size_t N_per_device = N / deviceCount;
+
+  int offset = 0;
+
+  for(int devID = 0; devID < deviceCount; devID++){
+    CUDA_RT_CALL(cudaSetDevice(devID));
+    CUDA_RT_CALL(cudaMemPrefetchAsync(arr + offset, N_per_device * sizeof(T), devID, NULL));
+  }
+  cudaSetDevice(device);
+}
+
+template<class T>
+void NaiveHint(T arr, size_t N) {
+  int device;
+  cudaGetDevice(&device);
+  int deviceCount;
+  cudaGetDeviceCount(&deviceCount);
+  size_t data_per_device = N / deviceCount;
+  size_t offset = 0;
+  size_t left = N;
+  for (int devID = 0; devID < ctx->device_count; devID++) {
+    CUDA_RT_CALL(cudaSetDevice(devID));
+    if (devID != 0) {
+      CUDA_RT_CALL(cudaMemAdvise(arr, offset * sizeof(T), CU_MEM_ADVISE_SET_ACCESSED_BY, devID));
+    }
+    CUDA_RT_CALL(cudaMemAdvise(arr + offset,
+                                    data_per_device * sizeof(T), CU_MEM_ADVISE_SET_PREFERRED_LOCATION,
+                                    devID));
+    offset += data_per_device;
+    left   -= data_per_device;
+    if (devID != deviceCount -1) {
+      CUDA_SUCCEED_FATAL(cudaMemAdvise(arr + offset, left * sizeof(T), CU_MEM_ADVISE_SET_ACCESSED_BY, devID));
+    }
+  }
+}
+
+
+
+template<class T>
+void hintReadOnly(T arr, size_t N){
+  // Device Argument ignore for Read mostly advice
+  CUDA_RT_CALL(cudaMemAdvise(arr, N*sizeof(T), cudaMemAdviseSetReadMostly, cudaCpuDeviceId));
+}
+
 template<class T>
 void hint2DWithBorder(
         T* arr,
@@ -130,5 +180,8 @@ copyFromShr2GlbMem( const uint32_t glb_offs
   }
   __syncthreads();
 }
+
+
+
 
 #endif
