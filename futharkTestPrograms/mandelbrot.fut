@@ -14,6 +14,9 @@ let divergence (c : (f32,f32)) (d:i32):i32 =
             (ac c (mc z z), i + 1)
     in done
 
+-- ==
+-- input { 2500i64 2500i64 200i32 } auto output
+
 let main  (n:i64) (m:i64)  (d:i32): [n][m]i32 =
     let css = tabulate_2d n m (\i j -> (((f32.i64 i) / (f32.i64 n))*4 - 2, ((f32.i64 j) / (f32.i64 m))*4 - 2))
     in
