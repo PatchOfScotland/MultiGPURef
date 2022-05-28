@@ -79,6 +79,7 @@ int main(int argc, char** argv){
     // Runtimes
     float* runtimes_single_gpu = (float*)calloc(iterations, sizeof(float));
     float* runtimes_multi_gpu = (float*)calloc(iterations, sizeof(float));
+    float* runtimes_multi_preferAccess = (float*)calloc(iterations, sizeof(float));
     float* runtimes_multi_gpu_hinted = (float*)calloc(iterations, sizeof(float));
 
     {  // Single GPU MMM
@@ -99,6 +100,20 @@ int main(int argc, char** argv){
         }
     }
 
+    NaiveHint<funcType>(A, A_length);
+    NaiveHint<funcType>(B, B_length);
+
+    {  // Multi GPU MMM  - Prefered location + Access by
+        void* args[] = {&A, &B, &C_multi, &height_a, &width_b, &height_b};
+        cudaError_t (*function)(void**) = &multiGPU::MMM<funcType, 16>;
+        benchmarkFunction(function, args, runtimes_multi_preferAccess, iterations);
+        if(compare_arrays<funcType>(C_single, C_multi, C_length)){
+            std::cout << "Naive hinted Multi GPU MMM is correct\n";
+        } else {
+            std::cout << "Naive hinted Multi GPU MMM is incorrect\n";
+        }
+    }
+
     CUDA_RT_CALL(cudaMemAdvise(A, A_length*sizeof(funcType), cudaMemAdviseSetReadMostly, cudaCpuDeviceId));
     CUDA_RT_CALL(cudaMemAdvise(B, B_length*sizeof(funcType), cudaMemAdviseSetReadMostly, cudaCpuDeviceId));
 
@@ -108,14 +123,15 @@ int main(int argc, char** argv){
         cudaError_t (*function)(void**) = &multiGPU::MMM<funcType, 16>;
         benchmarkFunction(function, args, runtimes_multi_gpu_hinted, iterations);
         if(compare_arrays<funcType>(C_single, C_multi, C_length)){
-            std::cout << "Hinted Multi GPU MMM is correct\n";
+            std::cout << "Read mostly Multi GPU MMM is correct\n";
         } else {
-            std::cout << "Hinted Multi GPU MMM is incorrect\n";
+            std::cout << "Read mostly Multi GPU MMM is incorrect\n";
         }
     }
 
     for(int run = 0; run < iterations; run++){
-        File << runtimes_single_gpu[run] << ", " << runtimes_multi_gpu[run] << ", " << runtimes_multi_gpu_hinted[run] << "\n";
+        File << runtimes_single_gpu[run] << ", " << runtimes_multi_gpu[run] << ", " <<
+            runtimes_multi_preferAccess[run] << "," << runtimes_multi_gpu_hinted[run] << "\n";
     }
     File.close();
     return 0;

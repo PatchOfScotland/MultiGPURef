@@ -3,7 +3,6 @@
 
 #include "constants.cu.h"
 
-
 template<class T>
 void AllocateDeviceArray(T** data, size_t elements){
     int Device, DeviceCount;
@@ -36,7 +35,7 @@ void hint1D(T* arr, int blockSize, size_t N){
 }
 
 template <class T>
-void NaiveFetch(T arr, int64_t N){
+void NaiveFetch(T* arr, int64_t N){
   int device;
   cudaGetDevice(&device);
   int deviceCount;
@@ -53,7 +52,7 @@ void NaiveFetch(T arr, int64_t N){
 }
 
 template<class T>
-void NaiveHint(T arr, size_t N) {
+void NaiveHint(T* arr, size_t N) {
   int device;
   cudaGetDevice(&device);
   int deviceCount;
@@ -64,15 +63,15 @@ void NaiveHint(T arr, size_t N) {
   for (int devID = 0; devID < deviceCount; devID++) {
     CUDA_RT_CALL(cudaSetDevice(devID));
     if (devID != 0) {
-      CUDA_RT_CALL(cudaMemAdvise(arr, offset * sizeof(T), CU_MEM_ADVISE_SET_ACCESSED_BY, devID));
+      CUDA_RT_CALL(cudaMemAdvise(arr, offset * sizeof(T), cudaMemAdviseSetAccessedBy, devID));
     }
     CUDA_RT_CALL(cudaMemAdvise(arr + offset,
-                                    data_per_device * sizeof(T), CU_MEM_ADVISE_SET_PREFERRED_LOCATION,
+                                    data_per_device * sizeof(T), cudaMemAdviseSetPreferredLocation,
                                     devID));
     offset += data_per_device;
     left   -= data_per_device;
     if (devID != deviceCount -1) {
-      CUDA_SUCCEED_FATAL(cudaMemAdvise(arr + offset, left * sizeof(T), CU_MEM_ADVISE_SET_ACCESSED_BY, devID));
+      CUDA_RT_CALL(cudaMemAdvise(arr + offset, left * sizeof(T), cudaMemAdviseSetAccessedBy, devID));
     }
   }
 }
