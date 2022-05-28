@@ -210,7 +210,7 @@ void benchmarkFunction(cudaError_t (*function)(void**),void** args, float* runti
         CUDA_RT_CALL(function(args));
 
         CUDA_RT_CALL(cudaEventRecord(stop_event));
-        CUDA_RT_CALL(cudaDeviceSynchronize());
+        CUDA_RT_CALL(cudaEventSynchronize(stop_event));
         CUDA_RT_CALL(cudaEventElapsedTime(&runtimes_ms[run], start_event, stop_event));
     }
     CUDA_RT_CALL(cudaEventDestroy(start_event));

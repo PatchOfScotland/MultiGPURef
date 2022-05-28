@@ -61,7 +61,7 @@ void NaiveHint(T arr, size_t N) {
   size_t data_per_device = N / deviceCount;
   size_t offset = 0;
   size_t left = N;
-  for (int devID = 0; devID < ctx->device_count; devID++) {
+  for (int devID = 0; devID < deviceCount; devID++) {
     CUDA_RT_CALL(cudaSetDevice(devID));
     if (devID != 0) {
       CUDA_RT_CALL(cudaMemAdvise(arr, offset * sizeof(T), CU_MEM_ADVISE_SET_ACCESSED_BY, devID));

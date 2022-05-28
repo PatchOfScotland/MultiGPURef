@@ -635,6 +635,89 @@ scanManyBlockPS( typename OP::RedElTp* d_inout, const int blocksToScan, int page
         __syncthreads();
     }
 }
+
+template<class OP, int CHUNK>
+__global__ void
+redAssocKernelMultiDevice( typename OP::RedElTp* d_tmp
+              , typename OP::InpElTp* d_in
+              , uint32_t N
+              , uint32_t num_seq_chunks
+              , const int devID
+) {
+    extern __shared__ char sh_mem[];
+    // shared memory for the input-element and reduce-element type;
+    // the two shared memories overlap, since they are not used in
+    // the same time.
+    volatile typename OP::InpElTp* shmem_inp = (typename OP::InpElTp*)sh_mem;
+    volatile typename OP::RedElTp* shmem_red = (typename OP::RedElTp*)sh_mem;
+
+    // initialization for the per-block result
+    typename OP::RedElTp res = OP::identity();
+
+    uint32_t num_elems_per_block = num_seq_chunks * CHUNK * blockDim.x;
+    uint32_t inp_block_offs = num_elems_per_block * blockIdx.x + devID * num_elems_per_block * gridDim.x;
+    uint32_t num_elems_per_iter  = CHUNK * blockDim.x;
+
+    // virtualization loop of count `num_seq_chunks`. Each iteration processes
+    //   `blockDim.x * CHUNK` elements, i.e., `CHUNK` elements per thread.
+    // `num_seq_chunks` is chosen such that it covers all N input elements
+    for(int seq=0; seq<num_elems_per_block; seq+=num_elems_per_iter) {
+
+        // 1. copy `CHUNK` input elements per thread from global to shared memory
+        //    in a coalesced fashion (for global memory)
+        copyFromGlb2ShrMem<typename OP::InpElTp,CHUNK>
+                ( inp_block_offs + seq, N, OP::identInp(), d_in, shmem_inp );
+
+        // 2. each thread sequentially reads its `CHUNK` elements from shared
+        //     memory, applies the map function and reduces them.
+        typename OP::RedElTp acc = OP::identity();
+        uint32_t shmem_offset = threadIdx.x * CHUNK;
+        #pragma unroll
+        for (uint32_t i = 0; i < CHUNK; i++) {
+            typename OP::InpElTp elm = shmem_inp[shmem_offset + i];
+            typename OP::RedElTp red = OP::mapFun(elm);
+            acc = OP::apply(acc, red);
+        }
+        __syncthreads();
+
+        // 3. each thread publishes the previous result in shared memory
+        shmem_red[threadIdx.x] = acc;
+        __syncthreads();
+
+        // 4. perform an intra-block reduction with the per-thread result
+        //    from step 2; the last thread updates the per-block result `res`
+        acc = scanIncBlock<OP>(shmem_red, threadIdx.x);
+        if (threadIdx.x == blockDim.x-1) {
+            res = OP::apply(res, acc);
+        }
+        __syncthreads();
+        // rinse and repeat until all elements have been processed.
+    }
+
+    // 4. last thread publishes the per-block reduction result
+    //    in global memory
+    if (threadIdx.x == blockDim.x-1) {
+        d_tmp[blockIdx.x + devID * gridDim.x] = res;
+    }
+}
+
+template<class OP>
+__global__ void
+scan1Block( typename OP::RedElTp* d_inout, uint32_t N ) {
+    extern __shared__ char sh_mem[];
+    volatile typename OP::RedElTp* shmem_red = (typename OP::RedElTp*)sh_mem;
+    typename OP::RedElTp elm = OP::identity();
+    if(threadIdx.x < N) {
+        elm = d_inout[threadIdx.x];
+    }
+    shmem_red[threadIdx.x] = elm;
+    __syncthreads();
+    elm = scanIncBlock<OP>(shmem_red, threadIdx.x);
+    if (threadIdx.x < N) {
+        d_inout[threadIdx.x] = elm;
+    }
+}
+
 /* End Kernels */
 
 

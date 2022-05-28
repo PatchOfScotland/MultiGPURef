@@ -82,14 +82,17 @@ int main(int argc, char* argv[]){
 
 
     funcType* data;
+    funcType* data_multiDevice;
     funcType* idxs;
     funcType* data_idx;
 
     CUDA_RT_CALL(cudaMallocManaged(&data, data_length*sizeof(funcType)));
+    CUDA_RT_CALL(cudaMallocManaged(&data_multiDevice, data_length*sizeof(funcType)));
     CUDA_RT_CALL(cudaMallocManaged(&idxs, index_length*sizeof(funcType)));
     CUDA_RT_CALL(cudaMallocManaged(&data_idx, index_length*sizeof(funcType)));
 
     init_array_cpu< funcType >(data, 1337, data_length);
+    cudaMemcpy(data_multiDevice, data, data_length*sizeof(funcType), cudaMemcpyDefault);
     init_idxs(data_length, 420, idxs, index_length);
     init_array_cpu< funcType >(data_idx, 69, index_length);
 
@@ -97,9 +100,22 @@ int main(int argc, char* argv[]){
     float* runtime_single_GPU_start = (float*)calloc(iterations, sizeof(float));
 
     { // Single GPU unhinted - CPU initial
-
-
+        void* args[] = {&data, &idxs, &data_idx, &data_length, &index_length};
+        scatterBenchmarkCPU(&singleGPU::scatter<funcType>, args, runtime_single_CPU_start, iterations, data, data_length);
     }
+    { // Single GPU unhinted - CPU initial
+        void* args[] = {&data, &idxs, &data_idx, &data_length, &index_length};
+        scatterBenchmarkGPU(&singleGPU::scatter<funcType>, args, runtime_single_GPU_start, iterations, data, data_length);
+    }
+    { // Multi GPU unhinted - GPU initial
+        void* args[] = {&data_multiDevice, &idxs, &data_idx, &data_length, &index_length};
+        scatterBenchmarkCPU(&multiGPU::scatter<funcType>, args, runtime_single_CPU_start, iterations, data, data_length);
+    }
+    { // Multi GPU unhinted - GPU initial
+        void* args[] = {&data_multiDevice, &idxs, &data_idx, &data_length, &index_length};
+        scatterBenchmarkGPU(&multiGPU::scatter<funcType>, args, runtime_single_GPU_start, iterations, data, data_length);
+    }
+
 
     cudaFree(data);
     cudaFree(idxs);

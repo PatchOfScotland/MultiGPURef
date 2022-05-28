@@ -3,6 +3,7 @@
 
 #include "helpers.cu.h"
 #include "constants.cu.h"
+#include "cuda.h"
 
 namespace singleGPU {
     template<class MapFunc>
@@ -51,6 +52,28 @@ namespace singleGPU {
 
         return cudaGetLastError();
     }
+
+    template<class MapFunc>
+    cudaError_t ApplyMapChunks(void* args[]){
+        typedef typename MapFunc::InpElTp T1;
+        typedef typename MapFunc::RedElTp T2;
+        T1* input = *(T1**)args[0];
+        T2* output = *(T2**)args[1];
+        size_t N = *(size_t*)args[2];
+
+        int device;
+        CUDA_RT_CALL(cudaGetDevice(&device));
+        int blocksize = 1024;
+        int SM_count;
+        int thread_per_SM;
+        CUDA_RT_CALL(cudaDeviceGetAttribute(&SM_count, cudaDevAttrMultiProcessorCount, device));
+        CUDA_RT_CALL(cudaDeviceGetAttribute(&thread_per_SM, cudaDevAttrMaxThreadsPerMultiProcessor, device));
+        int max_threads = SM_count * thread_per_SM;
+        int num_blocks = max_threads % blocksize == 0 ? max_threads / blocksize : max_threads / blocksize + 1;
+        MapGPUChucks<MapFunc><<<num_blocks, blocksize>>>(input, output, N);
+
+        return cudaGetLastError();
+    }
 }
 
 namespace multiGPU {
@@ -64,6 +87,19 @@ namespace multiGPU {
         size_t idx = devID * blockDim.x * gridDim.x + blockDim.x*blockIdx.x + threadIdx.x;
         if (idx < N) {
             output[idx] = MapFunc::apply(input[idx]);
+        }
+    }
+
+    template<class MapFunc>
+    __global__ void MapGPUChucks(
+        typename MapFunc::InpElTp* input,
+        typename MapFunc::RedElTp* output,
+        size_t N
+    ){
+        for(size_t idx = blockDim.x*blockIdx.x + threadIdx.x; idx < N; idx += blockDim.x * gridDim.x){
+            if (idx < N) {
+                output[idx] = MapFunc::apply(input[idx]);
+            }
         }
     }
 

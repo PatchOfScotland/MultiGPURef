@@ -84,27 +84,29 @@ int main(int argc, char** argv){
     {  // Single GPU MMM
         void* args[] = {&A, &B, &C_single, &height_a, &width_b, &height_b};
         cudaError_t (*function)(void**) = &singleGPU::MMM<funcType, 16>;
-        benchmarkfunction(function, args, runtimes_single_gpu, iterations);
+        benchmarkFunction(function, args, runtimes_single_gpu, iterations);
         // Assume single GPU is correct
     }
 
     {  // Multi GPU MMM
         void* args[] = {&A, &B, &C_multi, &height_a, &width_b, &height_b};
         cudaError_t (*function)(void**) = &multiGPU::MMM<funcType, 16>;
-        benchmarkfunction(function, args, runtimes_multi_gpu, iterations);
+        benchmarkFunction(function, args, runtimes_multi_gpu, iterations);
         if(compare_arrays<funcType>(C_single, C_multi, C_length)){
             std::cout << "Multi GPU MMM is correct\n";
         } else {
             std::cout << "Multi GPU MMM is incorrect\n";
         }
     }
-    hintReadOnly<funcType>(A, A_length);
-    hintReadOnly<funcType>(B, B_length);
+
+    CUDA_RT_CALL(cudaMemAdvise(A, A_length*sizeof(funcType), cudaMemAdviseSetReadMostly, cudaCpuDeviceId));
+    CUDA_RT_CALL(cudaMemAdvise(B, B_length*sizeof(funcType), cudaMemAdviseSetReadMostly, cudaCpuDeviceId));
+
 
     {  // Hinted Multi GPU
         void* args[] = {&A, &B, &C_multi, &height_a, &width_b, &height_b};
         cudaError_t (*function)(void**) = &multiGPU::MMM<funcType, 16>;
-        benchmarkfunction(function, args, runtimes_multi_gpu_hinted, iterations);
+        benchmarkFunction(function, args, runtimes_multi_gpu_hinted, iterations);
         if(compare_arrays<funcType>(C_single, C_multi, C_length)){
             std::cout << "Hinted Multi GPU MMM is correct\n";
         } else {
@@ -115,5 +117,6 @@ int main(int argc, char** argv){
     for(int run = 0; run < iterations; run++){
         File << runtimes_single_gpu[run] << ", " << runtimes_multi_gpu[run] << ", " << runtimes_multi_gpu_hinted[run] << "\n";
     }
-    File.close()
+    File.close();
+    return 0;
 }
