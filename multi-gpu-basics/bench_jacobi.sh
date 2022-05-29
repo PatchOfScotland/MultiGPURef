@@ -7,6 +7,6 @@
 
 nvcc src/jacobi_stencil_bench.cu -o build/jacobi_stencil_bench -O3 -std=c++11 -arch=sm_61
 
-./build/jacobi_stencil_bench data/jacobi_stencil_2.csv
+./build/jacobi_stencil_bench -output data/jacobi_stencil_2.csv
 
 echo "DONE!"
