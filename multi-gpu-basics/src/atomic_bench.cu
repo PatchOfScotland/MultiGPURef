@@ -10,7 +10,7 @@
 #include "lib/helpers.cu.h"
 #include "lib/atomic.cu"
 
-#define THREADSSIZE 10000000
+#define THREADSSIZE 1000000
 #define PEER_ACCESS 1
 
 
@@ -114,8 +114,8 @@ int main(int argc, char* argv[]){
     }
 
     for(int run = 0; run < iterations; run++){
-        File << single_gpu_ms << ", " << single_gpu_system_ms << ", "
-                << multi_gpu_ms << ", " << multi_gpu_system_ms << "\n";
+        File << single_gpu_ms[run] << ", " << single_gpu_system_ms[run] << ", "
+                << multi_gpu_ms[run] << ", " << multi_gpu_system_ms[run] << "\n";
     }
 
     File.close();
