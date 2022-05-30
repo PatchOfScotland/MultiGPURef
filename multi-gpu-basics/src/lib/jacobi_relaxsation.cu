@@ -152,7 +152,7 @@ namespace singleGPU {
     cudaError_t jacobi(void** args){
         float* src  = *(float**)args[0];
         float* dst  = *(float**)args[1];
-        float* norm_d  = *(float**)args[2];
+        float** norm_d  = *(float***)args[2];
         int h  = *(int*)args[3];
         int w  = *(int*)args[4];
 
@@ -160,27 +160,27 @@ namespace singleGPU {
         float norm = 1.0;
 
         const int rowBlocks = (h % blockSize == 0) ? h / blockSize : h / blockSize + 1;
-        const int colBlocks = (w % blockSize == 0) ? w / blockSize : w / blockSize + 1; 
+        const int colBlocks = (w % blockSize == 0) ? w / blockSize : w / blockSize + 1;
         // MemAdvices
 
         const size_t shmemSize = (blockSize + 2) * (blockSize + 2) * sizeof(float);
         const dim3 block(blockSize, blockSize, 1);
 
         while(norm > TOL && iter < MAX_ITER){
-            CUDA_RT_CALL(cudaMemset(norm_d, 0, sizeof(float)));
+            CUDA_RT_CALL(cudaMemset(norm_d[0], 0, sizeof(float)));
             dim3 grid(colBlocks, rowBlocks, 1);
 
             jacobiKernel<blockSize><<<grid, block, shmemSize>>>(
                 src,
                 dst,
-                norm_d,
+                norm_d[0],
                 h,
                 w
             );
 
-            cudaDeviceSynchronize();
-
-            norm = std::sqrt(*norm_d);
+            CUDA_RT_CALL(cudaDeviceSynchronize());
+            cudaMemcpy(&norm,*norm_d, sizeof(float), cudaMemcpyDefault);
+            norm = std::sqrt(norm);
             std::swap(src, dst);
             iter++;
         }
@@ -257,7 +257,7 @@ namespace multiGPU {
     cudaError_t jacobi_world_stop(void** args){
         float* src  = *(float**)args[0];
         float* dst  = *(float**)args[1];
-        float* norm_d  = *(float**)args[2];
+        float** norm_d  = *(float***)args[2];
         int h  = *(int*)args[3];
         int w  = *(int*)args[4];
 
@@ -270,7 +270,7 @@ namespace multiGPU {
         float norm = 1.0;
 
         const int rowBlocks = (h % blockSize == 0) ? h / blockSize : h / blockSize + 1;
-        const int colBlocks = (w % blockSize == 0) ? w / blockSize : w / blockSize + 1; 
+        const int colBlocks = (w % blockSize == 0) ? w / blockSize : w / blockSize + 1;
         // MemAdvices
         int rows_per_device_low  = rowBlocks / DeviceCount;
         int rows_per_device_high = rows_per_device_low + 1;
@@ -280,17 +280,18 @@ namespace multiGPU {
         const dim3 block(blockSize, blockSize, 1);
 
         while(norm > TOL && iter < MAX_ITER){
-            cudaMemset(norm_d,0, sizeof(float));
+
 
             int offset = 0;
             for(int devID = 0; devID < DeviceCount; devID++){
                 cudaSetDevice(devID);
+                CUDA_RT_CALL(cudaMemset(norm_d[devID],0, sizeof(float)));
                 size_t brows = (devID < highRows) ? rows_per_device_high : rows_per_device_low;
                 dim3 grid(colBlocks, brows,1);
                 jacobiKernel<blockSize><<<grid, block, shmemSize>>>(
                     src,
                     dst,
-                    norm_d,
+                    norm_d[devID],
                     h,
                     w,
                     offset
@@ -299,7 +300,22 @@ namespace multiGPU {
             }
             DeviceSyncronize();
 
-            norm = *norm_d;
+            norm = 0;
+            float normTemps[DeviceCount];
+            for(int devID = 0; devID < DeviceCount; devID++){
+                cudaSetDevice(devID);
+                cudaMemcpyAsync(&normTemps[devID], norm_d[devID], sizeof(float), cudaMemcpyDeviceToHost, 0);
+            }
+
+            for(int devID = 0; devID < DeviceCount; devID++){
+                cudaSetDevice(devID);
+                CUDA_RT_CALL(cudaStreamSynchronize(0));
+            }
+
+            for(int idx = 0; idx < DeviceCount; idx++){
+                norm += normTemps[idx];
+            }
+
             norm = std::sqrt(norm);
             std::swap(src, dst);
             iter++;
@@ -311,7 +327,6 @@ namespace multiGPU {
 
     template<int blockSize>
     cudaError_t jacobi_emulated(float* src, float* dst, float* norm_d, const int h, const int w, int DeviceCount){
-
         int iter   = 0;
         float norm = 1.0;
         const int rowBlocks = (h % blockSize == 0) ? h / blockSize : h / blockSize + 1;
@@ -388,15 +403,15 @@ namespace multiGPU {
                 size_t brows = (devID < highRows) ? rows_per_device_high : rows_per_device_low;
                 dim3 grid(colBlocks, brows,1);
 
-                cudaSetDevice(devID);
-                cudaMemsetAsync(norm_d[devID], 0, sizeof(float), 0);
-                cudaStreamWaitEvent(0, computeDone[top*2 + (iter % 2)],0);
-                cudaStreamWaitEvent(0, computeDone[bottom*2 + (iter % 2)],0);
+                CUDA_RT_CALL(cudaSetDevice(devID));
+                CUDA_RT_CALL(cudaMemsetAsync(norm_d[devID], 0, sizeof(float), 0));
+                CUDA_RT_CALL(cudaStreamWaitEvent(0, computeDone[top*2 + (iter % 2)],0));
+                CUDA_RT_CALL(cudaStreamWaitEvent(0, computeDone[bottom*2 + (iter % 2)],0));
 
                 jacobiKernel<blockSize><<<grid, block, shmemSize, 0>>>(
                     src, dst, norm_d[devID], h, w, offset
                 );
-                cudaEventRecord(computeDone[devID*2 + (iter + 1) % 2], 0);
+                CUDA_RT_CALL(cudaEventRecord(computeDone[devID*2 + (iter + 1) % 2], 0));
                 offset += brows;
             }
 
@@ -404,12 +419,12 @@ namespace multiGPU {
             norm = 0;
             for(int devID = 0; devID < DeviceCount; devID++){
                 cudaSetDevice(devID);
-                cudaMemcpyAsync(normTemps + devID, norm_d[devID], sizeof(float), cudaMemcpyDeviceToHost, 0);
+                CUDA_RT_CALL(cudaMemcpyAsync(&normTemps[devID], norm_d[devID], sizeof(float), cudaMemcpyDeviceToHost, 0));
             }
 
             for(int devID = 0; devID < DeviceCount; devID++){
                 cudaSetDevice(devID);
-                cudaStreamSynchronize(0);
+                CUDA_RT_CALL(cudaStreamSynchronize(0));
             }
 
             for(int idx = 0; idx < DeviceCount; idx++){

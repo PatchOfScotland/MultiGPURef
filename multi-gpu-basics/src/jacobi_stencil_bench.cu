@@ -83,21 +83,20 @@ int main(int argc, char** argv){
 
     float* arr_1;
     float* arr_2;
-    float* norm;
-    float** norm_array =(float**)calloc(DeviceCount, sizeof(float*));
-    for(int devID = 0; devID < DeviceCount; devID++){
-        cudaSetDevice(devID);
-        cudaMalloc(&norm_array[devID], sizeof(float));
-    }
+    float** norm = (float**)calloc(DeviceCount, sizeof(float*));
+
     cudaSetDevice(Device);
 
     cudaMallocManaged(&arr_1, x * y * sizeof(float));
     cudaMallocManaged(&arr_2, x * y * sizeof(float));
-    cudaMallocManaged(&norm, sizeof(float));
+     for(int devID = 0; devID < DeviceCount; devID++){
+        cudaSetDevice(devID);
+        cudaMalloc(&norm[devID], sizeof(float));
+    }
 
     //Hints
-    hint2DWithBorder<float>(arr_1,    1, 32, y, x);
-    hint2DWithBorder<float>(arr_2,    1, 32, y, x);
+    hint2DWithBorder<float>(arr_1, 1, 32, y, x);
+    hint2DWithBorder<float>(arr_2, 1, 32, y, x);
 
 
     cudaEvent_t* computeEvent = (cudaEvent_t*)malloc(sizeof(cudaEvent_t)*2*DeviceCount);
@@ -109,6 +108,8 @@ int main(int argc, char** argv){
     }
 
     float* runtime_single_GPU = (float*)calloc(iterations, sizeof(float));
+    float* runtime_world_stop = (float*)calloc(iterations, sizeof(float));
+    float* runtime_devic_sync = (float*)calloc(iterations, sizeof(float));
 
     {   // Single GPU
         void* args[] = {&arr_1, &arr_2, &norm, &x, &y};
@@ -116,11 +117,16 @@ int main(int argc, char** argv){
     }
     {   // Multi GPU
         void* args[] = {&arr_1, &arr_2, &norm, &x, &y};
-        JacobiBenchmarkFunction(&multiGPU::jacobi_world_stop<32>, args, runtime_single_GPU, iterations, arr_1, arr_2, x, y);
+        JacobiBenchmarkFunction(&multiGPU::jacobi_world_stop<32>, args, runtime_world_stop, iterations, arr_1, arr_2, x, y);
     }
     {   // Multi GPU - Streams
         void* args[] = {&arr_1, &arr_2, &norm, &x, &y, &computeEvent};
-        JacobiBenchmarkFunction(&multiGPU::jacobi_Stream_barrier<32>, args, runtime_single_GPU, iterations, arr_1, arr_2, x, y);
+        JacobiBenchmarkFunction(&multiGPU::jacobi_Stream_barrier<32>, args, runtime_devic_sync, iterations, arr_1, arr_2, x, y);
+    }
+
+    for(int run = 0; run < iterations; run++){
+        File << runtime_single_GPU[run] << ", " << runtime_world_stop[run] <<
+            "," << runtime_devic_sync << "\n";
     }
 
     File.close();

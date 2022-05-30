@@ -192,7 +192,7 @@ void DeviceSyncronize(){
     cudaGetDeviceCount(&DeviceCount);
     for(int devID = 0; devID < DeviceCount; devID++){
         cudaSetDevice(devID);
-        cudaDeviceSynchronize();
+        CUDA_RT_CALL(cudaDeviceSynchronize());
     }
     cudaSetDevice(Device);
 }

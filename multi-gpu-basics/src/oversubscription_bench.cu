@@ -48,11 +48,12 @@ void BenchMapOverSubscriptionCPU(int iterations, float overSubscriptionFactor, c
     for(int run = 0; run < iterations; run++){
         float runtime;
 
-        CUDA_RT_CALL(cudaMemPrefetchAsync(inputMem, bufferSize, cudaCpuDeviceId));
-        CUDA_RT_CALL(cudaMemPrefetchAsync(outputMem, bufferSize, cudaCpuDeviceId));
+        CUDA_RT_CALL(cudaMemPrefetchAsync(outputMem, bufferSize, 0));
+        CUDA_RT_CALL(cudaMemPrefetchAsync(inputMem, bufferSize, 0));
+
+        CUDA_RT_CALL(cudaDeviceSynchronize());
 
         CUDA_RT_CALL(cudaEventRecord(start_event));
-
         function(args);
         CUDA_RT_CALL(cudaEventRecord(stop_event));
         CUDA_RT_CALL(cudaEventSynchronize(stop_event));
