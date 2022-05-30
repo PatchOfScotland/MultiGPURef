@@ -179,7 +179,7 @@ namespace singleGPU {
             );
 
             CUDA_RT_CALL(cudaDeviceSynchronize());
-            CUDA_RT_CALL(cudaMemcpy(&norm,*norm_d[0], sizeof(float), cudaMemcpyDefault));
+            CUDA_RT_CALL(cudaMemcpy(&norm, norm_d[0], sizeof(float), cudaMemcpyDefault));
             norm = std::sqrt(norm);
             std::swap(src, dst);
             iter++;
