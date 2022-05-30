@@ -111,10 +111,10 @@ int main(int argc, char** argv){
     float* runtime_world_stop = (float*)calloc(iterations, sizeof(float));
     float* runtime_devic_sync = (float*)calloc(iterations, sizeof(float));
 
-    {   // Single GPU
-        void* args[] = {&arr_1, &arr_2, &norm, &x, &y};
-        JacobiBenchmarkFunction(&singleGPU::jacobi<32>, args, runtime_single_GPU, iterations, arr_1, arr_2, x, y);
-    }
+    //{   // Single GPU
+    //    void* args[] = {&arr_1, &arr_2, &norm, &x, &y};
+    //    JacobiBenchmarkFunction(&singleGPU::jacobi<32>, args, runtime_single_GPU, iterations, arr_1, arr_2, x, y);
+    //}
     {   // Multi GPU
         void* args[] = {&arr_1, &arr_2, &norm, &x, &y};
         JacobiBenchmarkFunction(&multiGPU::jacobi_world_stop<32>, args, runtime_world_stop, iterations, arr_1, arr_2, x, y);
