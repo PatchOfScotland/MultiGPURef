@@ -90,7 +90,7 @@ int main(int argc, char** argv){
     cudaMallocManaged(&arr_2, x * y * sizeof(float));
      for(int devID = 0; devID < DeviceCount; devID++){
         cudaSetDevice(devID);
-        cudaMallocManaged(norm + devID, sizeof(float));
+        cudaMalloc(norm + devID, sizeof(float));
     }
     cudaSetDevice(Device);
 
