@@ -167,7 +167,7 @@ namespace singleGPU {
         const dim3 block(blockSize, blockSize, 1);
 
         while(norm > TOL && iter < MAX_ITER){
-            CUDA_RT_CALL(cudaMemset(norm_d[0], 0, sizeof(float)));
+            CUDA_RT_CALL(cudaMemset(*norm_d, 0, sizeof(float)));
             dim3 grid(colBlocks, rowBlocks, 1);
 
             jacobiKernel<blockSize><<<grid, block, shmemSize>>>(
@@ -179,7 +179,7 @@ namespace singleGPU {
             );
 
             CUDA_RT_CALL(cudaDeviceSynchronize());
-            cudaMemcpy(&norm,*norm_d, sizeof(float), cudaMemcpyDefault);
+            CUDA_RT_CALL(cudaMemcpy(&norm,*norm_d[0], sizeof(float), cudaMemcpyDefault));
             norm = std::sqrt(norm);
             std::swap(src, dst);
             iter++;
