@@ -126,7 +126,7 @@ int main(int argc, char** argv){
 
     for(int run = 0; run < iterations; run++){
         File << runtime_single_GPU[run] << ", " << runtime_world_stop[run] <<
-            "," << runtime_devic_sync << "\n";
+            "," << runtime_devic_sync[run] << "\n";
     }
 
     File.close();
