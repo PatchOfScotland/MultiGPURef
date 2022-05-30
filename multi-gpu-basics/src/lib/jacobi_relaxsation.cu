@@ -279,7 +279,7 @@ namespace multiGPU {
         const size_t shmemSize =  (blockSize*blockSize + (blockSize + 2) * (blockSize + 2)) * sizeof(float);
         const dim3 block(blockSize, blockSize, 1);
 
-        while(norm > TOL && iter < MAX_ITER){
+        while(iter < MAX_ITER){
 
 
             int offset = 0;
@@ -394,7 +394,7 @@ namespace multiGPU {
         const size_t shmemSize = blockSize*blockSize * sizeof(float);
         const dim3 block(blockSize, blockSize, 1);
 
-        while(norm > TOL && iter < MAX_ITER){
+        while(iter < MAX_ITER){
 
             int offset = 0;
             for(int devID=0; devID < DeviceCount; devID++){
