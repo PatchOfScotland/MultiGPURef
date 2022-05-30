@@ -198,7 +198,7 @@ int main(){
         CUDA_RT_CALL(cudaFree(outputMem));
     }
 
-    for(int i = 0; i < ITERATIONS; i++){
+    for(int i = 0; i < 3; i++){
             std::cout << runtimes_map_95[i] << ", " << runtimes_map_100[i] << ", " << runtimes_map_105[i] << ", ";
             std::cout << runtimes_map_95_hinted[i] << ", " << runtimes_map_100_hinted[i] << ", " << runtimes_map_105_hinted[i] << "\n";
         }
