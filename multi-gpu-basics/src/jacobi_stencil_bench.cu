@@ -85,7 +85,6 @@ int main(int argc, char** argv){
     float* arr_2;
     float** norm = (float**)calloc(DeviceCount, sizeof(float*));
 
-    cudaSetDevice(Device);
 
     cudaMallocManaged(&arr_1, x * y * sizeof(float));
     cudaMallocManaged(&arr_2, x * y * sizeof(float));
@@ -93,6 +92,7 @@ int main(int argc, char** argv){
         cudaSetDevice(devID);
         cudaMalloc(&norm[devID], sizeof(float));
     }
+    cudaSetDevice(Device);
 
     //Hints
     hint2DWithBorder<float>(arr_1, 1, 32, y, x);
