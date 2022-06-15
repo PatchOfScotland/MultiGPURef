@@ -85,7 +85,7 @@ int main(int argc, char* argv[]){
         if (*address == threads * 100){
             std::cout << "Single GPU system is valid\n";
         } else {
-            std::cout << "Single GPU system is invalid with value" << (*address) << "\n";
+            std::cout << "Single GPU system is invalid with value:" << (*address) << "\n";
         }
     }
     { // Multi GPU atomic
@@ -99,7 +99,7 @@ int main(int argc, char* argv[]){
         if (*address == threads * 100){
             std::cout << "Multi GPU is valid\n";
         } else {
-            std::cout << "Single GPU system is invalid with value" << (*address) << "\n";
+            std::cout << "Multi GPU is invalid with value:" << (*address) << "\n";
         }
     }
     { // Multi GPU system atomic
@@ -113,7 +113,7 @@ int main(int argc, char* argv[]){
         if (*address == threads * 100){
             std::cout << "Multi GPU system is valid\n";
         } else {
-            std::cout << "Single GPU system is invalid with value" << (*address) << "\n";
+            std::cout << "Multi GPU system is invalid with value:" << (*address) << "\n";
         }
     }
 

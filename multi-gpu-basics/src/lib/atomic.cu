@@ -55,7 +55,7 @@ namespace multiGPU {
     }
 
     __global__ void atomicSystemKernel(int* add, int64_t threadsMax){
-        if ( blockDim.x * blockIdx.x + threadIdx.x < threadsMax ) {
+        if (blockDim.x * blockIdx.x + threadIdx.x < threadsMax ) {
             for(int i = 0; i < 100; i++){
                 atomicAdd_system(add, 1);
             }
@@ -78,6 +78,9 @@ namespace multiGPU {
         for(int devID = 0; devID < DeviceCount; devID++){
             cudaSetDevice(devID);
             int64_t threadsPerDevice = (devID < highDevices) ? threadsPerDevice_high : threadsPerDevice_low;
+            std::cout << "Threads per device: " << threadsPerDevice << "\n";
+            std::cout << "Number of Blocks: " << numBlocks << "\n";
+            std::cout << "Block size: " << blockSize << "\n";
             atomicKernel<<<numBlocks, blockSize>>>(address, threadsPerDevice);
         }
         cudaSetDevice(Device);
@@ -99,6 +102,9 @@ namespace multiGPU {
         for(int devID = 0; devID < DeviceCount; devID++){
             cudaSetDevice(devID);
             int64_t threadsPerDevice = (devID < highDevices) ? threadsPerDevice_high : threadsPerDevice_low;
+            std::cout << "Threads per device: " << threadsPerDevice << "\n";
+            std::cout << "Number of Blocks: " << numBlocks << "\n";
+            std::cout << "Block size: " << blockSize << "\n";
             atomicSystemKernel<<<numBlocks, blockSize>>>(address, threadsPerDevice);
         }
         cudaSetDevice(Device);
