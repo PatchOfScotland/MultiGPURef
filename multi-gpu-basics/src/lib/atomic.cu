@@ -78,9 +78,6 @@ namespace multiGPU {
         for(int devID = 0; devID < DeviceCount; devID++){
             cudaSetDevice(devID);
             int64_t threadsPerDevice = (devID < highDevices) ? threadsPerDevice_high : threadsPerDevice_low;
-            std::cout << "Threads per device: " << threadsPerDevice << "\n";
-            std::cout << "Number of Blocks: " << numBlocks << "\n";
-            std::cout << "Block size: " << blockSize << "\n";
             atomicKernel<<<numBlocks, blockSize>>>(address, threadsPerDevice);
         }
         cudaSetDevice(Device);
@@ -102,9 +99,6 @@ namespace multiGPU {
         for(int devID = 0; devID < DeviceCount; devID++){
             cudaSetDevice(devID);
             int64_t threadsPerDevice = (devID < highDevices) ? threadsPerDevice_high : threadsPerDevice_low;
-            std::cout << "Threads per device: " << threadsPerDevice << "\n";
-            std::cout << "Number of Blocks: " << numBlocks << "\n";
-            std::cout << "Block size: " << blockSize << "\n";
             atomicSystemKernel<<<numBlocks, blockSize>>>(address, threadsPerDevice);
         }
         cudaSetDevice(Device);
