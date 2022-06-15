@@ -95,7 +95,7 @@ int main(int argc, char* argv[]){
         CUDA_RT_CALL(cudaMemset(address, 0, sizeof(funcType)));
         CUDA_RT_CALL(cudaDeviceSynchronize());
         function(args);
-        CUDA_RT_CALL(cudaDeviceSynchronize());
+        DeviceSyncronize();
         if (*address == threads * 100){
             std::cout << "Multi GPU is valid\n";
         } else {
@@ -109,7 +109,7 @@ int main(int argc, char* argv[]){
         CUDA_RT_CALL(cudaMemset(address, 0, sizeof(funcType)));
         CUDA_RT_CALL(cudaDeviceSynchronize());
         function(args);
-        CUDA_RT_CALL(cudaDeviceSynchronize());
+        DeviceSyncronize();
         if (*address == threads * 100){
             std::cout << "Multi GPU system is valid\n";
         } else {
