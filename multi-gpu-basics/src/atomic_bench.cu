@@ -65,6 +65,7 @@ int main(int argc, char* argv[]){
         cudaError_t (*function)(void**) = &singleGPU::atomicTest;
         benchmarkFunction(function, args, single_gpu_ms, iterations);
         CUDA_RT_CALL(cudaMemset(address, 0, sizeof(funcType)));
+        CUDA_RT_CALL(cudaDeviceSynchronize());
         function(args);
         CUDA_RT_CALL(cudaDeviceSynchronize());
         if (*address == threads * 100){
@@ -78,6 +79,7 @@ int main(int argc, char* argv[]){
         cudaError_t (*function)(void**) = &singleGPU::atomicSystemTest;
         benchmarkFunction(function, args, single_gpu_system_ms, iterations);
         CUDA_RT_CALL(cudaMemset(address, 0, sizeof(funcType)));
+        CUDA_RT_CALL(cudaDeviceSynchronize());
         function(args);
         CUDA_RT_CALL(cudaDeviceSynchronize());
         if (*address == threads * 100){
@@ -91,6 +93,7 @@ int main(int argc, char* argv[]){
         cudaError_t (*function)(void**) = &multiGPU::atomicTest;
         benchmarkFunction(function, args, multi_gpu_ms, iterations);
         CUDA_RT_CALL(cudaMemset(address, 0, sizeof(funcType)));
+        CUDA_RT_CALL(cudaDeviceSynchronize());
         function(args);
         CUDA_RT_CALL(cudaDeviceSynchronize());
         if (*address == threads * 100){
@@ -104,6 +107,7 @@ int main(int argc, char* argv[]){
         cudaError_t (*function)(void**) = &multiGPU::atomicSystemTest;
         benchmarkFunction(function, args, multi_gpu_system_ms, iterations);
         CUDA_RT_CALL(cudaMemset(address, 0, sizeof(funcType)));
+        CUDA_RT_CALL(cudaDeviceSynchronize());
         function(args);
         CUDA_RT_CALL(cudaDeviceSynchronize());
         if (*address == threads * 100){

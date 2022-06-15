@@ -1,4 +1,3 @@
-
 #include <iostream>
 #include <fstream>
 #include <algorithm>
@@ -11,10 +10,71 @@
 #include "lib/helpers.cu.h"
 #include "lib/map.cu"
 
+typedef int funcType;
 
-#include "lib/constants.cu.h"
-#include "lib/helpers.cu.h"
-#include "lib/map.cu"
+void BenchMapOverSubscriptionCPU(int iterations, float overSubscriptionFactor, cudaError_t (*function)(void**), bool hint, bool prefetch){
+    size_t freeMem, totalMem;
+    CUDA_RT_CALL(cudaMemGetInfo(&freeMem, &totalMem));
+    size_t capacity = freeMem / sizeof(funcType);
+    size_t arrSize = capacity / 2 * overSubscriptionFactor;
+    size_t bufferSize = arrSize * sizeof(funcType);
+
+
+    int Device;
+    CUDA_RT_CALL(cudaGetDevice(&Device));
+
+    funcType* inputMem;
+    funcType* outputMem;
+
+    CUDA_RT_CALL(cudaMallocManaged(&inputMem, bufferSize, cudaMemAttachGlobal));
+    CUDA_RT_CALL(cudaMallocManaged(&outputMem, bufferSize, cudaMemAttachGlobal));
+
+
+    init_array_cpu<funcType>(inputMem, 1337, arrSize);
+
+    if(hint){
+        CUDA_RT_CALL(cudaMemAdvise(inputMem, bufferSize, cudaMemAdviseSetPreferredLocation, Device));
+        //CUDA_RT_CALL(cudaMemAdvise(outputMem, bufferSize, cudaMemAdviseSetPreferredLocation, Device));
+    }
+
+    void* args[] = {&inputMem, &outputMem, &arrSize};
+
+    cudaEvent_t start_event;
+    cudaEvent_t stop_event;
+
+    CUDA_RT_CALL(cudaEventCreate(&start_event));
+    CUDA_RT_CALL(cudaEventCreateWithFlags(&stop_event, cudaEventBlockingSync));
+
+    for(int run = 0; run < iterations; run++){
+        float runtime;
+
+        //CUDA_RT_CALL(cudaMemPrefetchAsync(outputMem, bufferSize, cudaCpuDeviceId));
+        CUDA_RT_CALL(cudaMemPrefetchAsync(inputMem, bufferSize, cudaCpuDeviceId));
+
+        CUDA_RT_CALL(cudaDeviceSynchronize());
+
+        CUDA_RT_CALL(cudaEventRecord(start_event));
+        if(prefetch){
+            //CUDA_RT_CALL(cudaMemPrefetchAsync(outputMem, bufferSize, Device));
+            CUDA_RT_CALL(cudaMemPrefetchAsync(inputMem, bufferSize, Device));
+        }
+        function(args);
+        CUDA_RT_CALL(cudaEventRecord(stop_event));
+        CUDA_RT_CALL(cudaEventSynchronize(stop_event));
+        CUDA_RT_CALL(cudaEventElapsedTime(&runtime, start_event, stop_event));
+
+        std::cout << runtime;
+        (run != iterations -1) ? std::cout << ", " : std::cout << "\n";
+    }
+
+
+    CUDA_RT_CALL(cudaEventDestroy(start_event));
+    CUDA_RT_CALL(cudaEventDestroy(stop_event));
+
+    CUDA_RT_CALL(cudaFree(inputMem));
+    CUDA_RT_CALL(cudaFree(outputMem));
+}
+
 
 template<class T>
 class MapP2 {
@@ -26,344 +86,47 @@ class MapP2 {
 };
 
 
-typedef int funcType;
+template <typename T>
+T get_argval(char** begin, char** end, const std::string& arg, const T default_val) {
+    T argval = default_val;
+    char** itr = std::find(begin, end, arg);
+    if (itr != end && ++itr != end) {
+        std::istringstream inbuf(*itr);
+        inbuf >> argval;
+    }
+    return argval;
+}
 
-int main(){
-    // Run times definitions
-    float* runtimes_map_95_chunk = (float*)malloc(sizeof(float)*3);
-    float* runtimes_map_100_chunk = (float*)malloc(sizeof(float)*3);
-    float* runtimes_map_105_chunk = (float*)malloc(sizeof(float)*3);
-
-    float* runtimes_map_95_hinted_chunk = (float*)malloc(sizeof(float)*3);
-    float* runtimes_map_100_hinted_chunk = (float*)malloc(sizeof(float)*3);
-    float* runtimes_map_105_hinted_chunk = (float*)malloc(sizeof(float)*3);
-
-    float* runtimes_map_95 = (float*)malloc(sizeof(float)*3);
-    float* runtimes_map_100 = (float*)malloc(sizeof(float)*3);
-    float* runtimes_map_105 = (float*)malloc(sizeof(float)*3);
-
-    float* runtimes_map_95_hinted = (float*)malloc(sizeof(float)*3);
-    float* runtimes_map_100_hinted = (float*)malloc(sizeof(float)*3);
-    float* runtimes_map_105_hinted = (float*)malloc(sizeof(float)*3);
-
-
-    initHwd();
-    size_t freeMem, totalMem;
-
-    int Device;
-    cudaGetDevice(&Device);
-
-    cudaMemGetInfo(&freeMem, &totalMem);
+bool get_arg(char** begin, char** end, const std::string& arg) {
+    char** itr = std::find(begin, end, arg);
+    if (itr != end) {
+        return true;
+    }
+    return false;
+}
 
 
-    size_t capacity = freeMem / sizeof(funcType);
+int main(int argc, char** argv){
+    int iterations = get_argval<int>(argv, argv + argc, "-iter", ITERATIONS);
 
-    // Map
-
-    { // over Subscription: 0.95
-        size_t arrSize = capacity / 2 * 0.95;
-        size_t bufferSize = arrSize*sizeof(funcType);
-
-        funcType* inputMem;
-        funcType* outputMem;
-        CUDA_RT_CALL(cudaMallocManaged(&inputMem, bufferSize));
-        CUDA_RT_CALL(cudaMallocManaged(&outputMem, bufferSize));
-
-        init_array_cpu<funcType>(inputMem, 1337, arrSize);
-
-        CUDA_RT_CALL(cudaGetLastError());
-
-        void* args[] = { &inputMem, &outputMem, &arrSize };
-        cudaError_t (*function)(void**) = &singleGPU::ApplyMapChunks< MapP2 <funcType>>;
-
-        benchmarkFunction(function, args, runtimes_map_95_chunk, 3);
-
-        CUDA_RT_CALL(cudaFree(inputMem));
-        CUDA_RT_CALL(cudaFree(outputMem));
+    float overSubFactors[] = {0.95, 1.0, 1.05, 1.2, 1.5 };
+    int factors = 5;
+    // No Hint - Random Order
+    for(int run = 0; run < factors; run++){
+        BenchMapOverSubscriptionCPU(iterations, overSubFactors[run], &singleGPU::ApplyMap<MapP2< funcType > >, false, false);
+    }
+    // No Hints - fixed Order
+    for(int run = 0; run < factors; run++){
+        BenchMapOverSubscriptionCPU(iterations, overSubFactors[run], &singleGPU::ApplyMapChunks<MapP2< funcType > >, false, false);
     }
 
-    { // over Subscription: 1
-        size_t arrSize = capacity / 2;
-        size_t bufferSize = arrSize*sizeof(funcType);
-
-        funcType* inputMem;
-        funcType* outputMem;
-        CUDA_RT_CALL(cudaMallocManaged(&inputMem, bufferSize));
-        CUDA_RT_CALL(cudaMallocManaged(&outputMem, bufferSize));
-
-        init_array_cpu<funcType>(inputMem, 1337, arrSize);
-
-        CUDA_RT_CALL(cudaGetLastError());
-
-        void* args[] = { &inputMem, &outputMem, &arrSize };
-        cudaError_t (*function)(void**) = &singleGPU::ApplyMapChunks< MapP2 <funcType>>;
-
-        benchmarkFunction(function, args, runtimes_map_100_chunk, 3);
-
-        CUDA_RT_CALL(cudaFree(inputMem));
-        CUDA_RT_CALL(cudaFree(outputMem));
+    // Hint - Random Order
+    for(int run = 0; run < factors; run++){
+        BenchMapOverSubscriptionCPU(iterations, overSubFactors[run], &singleGPU::ApplyMap<MapP2< funcType > >, true, true);
     }
-
-    { // over Subscription: 1.05
-        size_t arrSize = capacity / 2 * 1.05;
-        size_t bufferSize = arrSize*sizeof(funcType);
-
-        funcType* inputMem;
-        funcType* outputMem;
-        CUDA_RT_CALL(cudaMallocManaged(&inputMem, bufferSize));
-        CUDA_RT_CALL(cudaMallocManaged(&outputMem, bufferSize));
-
-        init_array_cpu<funcType>(inputMem, 1337, arrSize);
-
-        CUDA_RT_CALL(cudaGetLastError());
-
-        void* args[] = { &inputMem, &outputMem, &arrSize };
-        cudaError_t (*function)(void**) = &singleGPU::ApplyMapChunks< MapP2 <funcType>>;
-
-        benchmarkFunction(function, args, runtimes_map_105_chunk, 3);
-
-        CUDA_RT_CALL(cudaFree(inputMem));
-        CUDA_RT_CALL(cudaFree(outputMem));
+    // Hints - fixed Order
+    for(int run = 0; run < factors; run++){
+        BenchMapOverSubscriptionCPU(iterations, overSubFactors[run], &singleGPU::ApplyMapChunks<MapP2< funcType > >, true, true);
     }
-
-    { // over Subscription: 0.95
-        size_t arrSize = capacity / 2 * 0.95;
-        size_t bufferSize = arrSize*sizeof(funcType);
-
-        funcType* inputMem;
-        funcType* outputMem;
-        CUDA_RT_CALL(cudaMallocManaged(&inputMem, bufferSize));
-        CUDA_RT_CALL(cudaMallocManaged(&outputMem, bufferSize));
-
-        init_array_cpu<funcType>(inputMem, 1337, arrSize);
-
-        CUDA_RT_CALL(cudaGetLastError());
-
-        void* args[] = { &inputMem, &outputMem, &arrSize };
-        cudaError_t (*function)(void**) = &singleGPU::ApplyMap< MapP2 <funcType>>;
-
-        benchmarkFunction(function, args, runtimes_map_95, 3);
-
-        CUDA_RT_CALL(cudaFree(inputMem));
-        CUDA_RT_CALL(cudaFree(outputMem));
-    }
-
-    { // over Subscription: 1
-        size_t arrSize = capacity / 2;
-        size_t bufferSize = arrSize*sizeof(funcType);
-
-        funcType* inputMem;
-        funcType* outputMem;
-        CUDA_RT_CALL(cudaMallocManaged(&inputMem, bufferSize));
-        CUDA_RT_CALL(cudaMallocManaged(&outputMem, bufferSize));
-
-        init_array_cpu<funcType>(inputMem, 1337, arrSize);
-
-        CUDA_RT_CALL(cudaGetLastError());
-
-        void* args[] = { &inputMem, &outputMem, &arrSize };
-        cudaError_t (*function)(void**) = &singleGPU::ApplyMap< MapP2 <funcType>>;
-
-        benchmarkFunction(function, args, runtimes_map_100, 3);
-
-        CUDA_RT_CALL(cudaFree(inputMem));
-        CUDA_RT_CALL(cudaFree(outputMem));
-    }
-
-    { // over Subscription: 1.05
-        size_t arrSize = capacity / 2 * 1.05;
-        size_t bufferSize = arrSize*sizeof(funcType);
-
-        funcType* inputMem;
-        funcType* outputMem;
-        CUDA_RT_CALL(cudaMallocManaged(&inputMem, bufferSize));
-        CUDA_RT_CALL(cudaMallocManaged(&outputMem, bufferSize));
-
-        init_array_cpu<funcType>(inputMem, 1337, arrSize);
-
-        CUDA_RT_CALL(cudaGetLastError());
-
-        void* args[] = { &inputMem, &outputMem, &arrSize };
-        cudaError_t (*function)(void**) = &singleGPU::ApplyMap< MapP2 <funcType>>;
-
-        benchmarkFunction(function, args, runtimes_map_105, 3);
-
-        CUDA_RT_CALL(cudaFree(inputMem));
-        CUDA_RT_CALL(cudaFree(outputMem));
-    }
-
-
-    // Map
-
-    { // over Subscription Hinted: 0.95
-        size_t arrSize = capacity / 2 * 0.95;
-        size_t bufferSize = arrSize*sizeof(funcType);
-
-        funcType* inputMem;
-        funcType* outputMem;
-        CUDA_RT_CALL(cudaMallocManaged(&inputMem, bufferSize));
-        CUDA_RT_CALL(cudaMallocManaged(&outputMem, bufferSize));
-
-
-
-        init_array_cpu<funcType>(inputMem, 1337, arrSize);
-        CUDA_RT_CALL(cudaMemAdvise(inputMem, bufferSize, cudaMemAdviseSetPreferredLocation, Device));
-        CUDA_RT_CALL(cudaMemAdvise(outputMem, bufferSize, cudaMemAdviseSetPreferredLocation, Device));
-        CUDA_RT_CALL(cudaMemPrefetchAsync(inputMem, bufferSize, Device));
-        CUDA_RT_CALL(cudaDeviceSynchronize());
-
-
-        void* args[] = { &inputMem, &outputMem, &arrSize };
-        cudaError_t (*function)(void**) = &singleGPU::ApplyMapChunks< MapP2 <funcType>>;
-
-        benchmarkFunction(function, args, runtimes_map_95_hinted_chunk, 3);
-
-        CUDA_RT_CALL(cudaFree(inputMem));
-        CUDA_RT_CALL(cudaFree(outputMem));
-    }
-
-    { // over Subscription Hinted: 1
-        size_t arrSize = capacity / 2;
-        size_t bufferSize = arrSize*sizeof(funcType);
-
-        funcType* inputMem;
-        funcType* outputMem;
-        CUDA_RT_CALL(cudaMallocManaged(&inputMem, bufferSize));
-        CUDA_RT_CALL(cudaMallocManaged(&outputMem, bufferSize));
-
-        init_array_cpu<funcType>(inputMem, 1337, arrSize);
-        CUDA_RT_CALL(cudaMemAdvise(inputMem, bufferSize, cudaMemAdviseSetPreferredLocation, Device));
-        CUDA_RT_CALL(cudaMemAdvise(outputMem, bufferSize, cudaMemAdviseSetPreferredLocation, Device));
-        CUDA_RT_CALL(cudaMemPrefetchAsync(inputMem, bufferSize, Device));
-        CUDA_RT_CALL(cudaDeviceSynchronize());
-
-        CUDA_RT_CALL(cudaGetLastError());
-
-        void* args[] = { &inputMem, &outputMem, &arrSize };
-        cudaError_t (*function)(void**) = &singleGPU::ApplyMapChunks< MapP2 <funcType>>;
-
-        benchmarkFunction(function, args, runtimes_map_100_hinted_chunk, 3);
-
-        CUDA_RT_CALL(cudaFree(inputMem));
-        CUDA_RT_CALL(cudaFree(outputMem));
-    }
-
-    { // over Subscription hinted: 1.05
-        size_t arrSize = capacity / 2 * 1.05;
-        size_t bufferSize = arrSize*sizeof(funcType);
-
-        funcType* inputMem;
-        funcType* outputMem;
-        CUDA_RT_CALL(cudaMallocManaged(&inputMem, bufferSize));
-        CUDA_RT_CALL(cudaMallocManaged(&outputMem, bufferSize));
-
-        init_array_cpu<funcType>(inputMem, 1337, arrSize);
-        CUDA_RT_CALL(cudaMemAdvise(inputMem, bufferSize, cudaMemAdviseSetPreferredLocation, Device));
-        CUDA_RT_CALL(cudaMemAdvise(outputMem, bufferSize, cudaMemAdviseSetPreferredLocation, Device));
-        CUDA_RT_CALL(cudaMemPrefetchAsync(inputMem, bufferSize, Device));
-        CUDA_RT_CALL(cudaDeviceSynchronize());
-
-        CUDA_RT_CALL(cudaGetLastError());
-
-        void* args[] = { &inputMem, &outputMem, &arrSize };
-        cudaError_t (*function)(void**) = &singleGPU::ApplyMapChunks< MapP2 <funcType>>;
-
-        benchmarkFunction(function, args, runtimes_map_105_hinted_chunk, 3);
-
-        CUDA_RT_CALL(cudaFree(inputMem));
-        CUDA_RT_CALL(cudaFree(outputMem));
-    }
-
-    { // over Subscription Hinted: 0.95
-        size_t arrSize = capacity / 2 * 0.95;
-        size_t bufferSize = arrSize*sizeof(funcType);
-
-        funcType* inputMem;
-        funcType* outputMem;
-        CUDA_RT_CALL(cudaMallocManaged(&inputMem, bufferSize));
-        CUDA_RT_CALL(cudaMallocManaged(&outputMem, bufferSize));
-
-
-
-        init_array_cpu<funcType>(inputMem, 1337, arrSize);
-        CUDA_RT_CALL(cudaMemAdvise(inputMem, bufferSize, cudaMemAdviseSetPreferredLocation, Device));
-        CUDA_RT_CALL(cudaMemAdvise(outputMem, bufferSize, cudaMemAdviseSetPreferredLocation, Device));
-        CUDA_RT_CALL(cudaMemPrefetchAsync(inputMem, bufferSize, Device));
-        CUDA_RT_CALL(cudaDeviceSynchronize());
-
-
-        void* args[] = { &inputMem, &outputMem, &arrSize };
-        cudaError_t (*function)(void**) = &singleGPU::ApplyMap< MapP2 <funcType>>;
-
-        benchmarkFunction(function, args, runtimes_map_95_hinted, 3);
-
-        CUDA_RT_CALL(cudaFree(inputMem));
-        CUDA_RT_CALL(cudaFree(outputMem));
-    }
-
-    { // over Subscription Hinted: 1
-        size_t arrSize = capacity / 2;
-        size_t bufferSize = arrSize*sizeof(funcType);
-
-        funcType* inputMem;
-        funcType* outputMem;
-        CUDA_RT_CALL(cudaMallocManaged(&inputMem, bufferSize));
-        CUDA_RT_CALL(cudaMallocManaged(&outputMem, bufferSize));
-
-        init_array_cpu<funcType>(inputMem, 1337, arrSize);
-        CUDA_RT_CALL(cudaMemAdvise(inputMem, bufferSize, cudaMemAdviseSetPreferredLocation, Device));
-        CUDA_RT_CALL(cudaMemAdvise(outputMem, bufferSize, cudaMemAdviseSetPreferredLocation, Device));
-        CUDA_RT_CALL(cudaMemPrefetchAsync(inputMem, bufferSize, Device));
-        CUDA_RT_CALL(cudaDeviceSynchronize());
-
-        CUDA_RT_CALL(cudaGetLastError());
-
-        void* args[] = { &inputMem, &outputMem, &arrSize };
-        cudaError_t (*function)(void**) = &singleGPU::ApplyMap< MapP2 <funcType>>;
-
-        benchmarkFunction(function, args, runtimes_map_100_hinted, 3);
-
-        CUDA_RT_CALL(cudaFree(inputMem));
-        CUDA_RT_CALL(cudaFree(outputMem));
-    }
-
-    { // over Subscription hinted: 1.05
-        size_t arrSize = capacity / 2 * 1.05;
-        size_t bufferSize = arrSize*sizeof(funcType);
-
-        funcType* inputMem;
-        funcType* outputMem;
-        CUDA_RT_CALL(cudaMallocManaged(&inputMem, bufferSize));
-        CUDA_RT_CALL(cudaMallocManaged(&outputMem, bufferSize));
-
-        init_array_cpu<funcType>(inputMem, 1337, arrSize);
-        CUDA_RT_CALL(cudaMemAdvise(inputMem, bufferSize, cudaMemAdviseSetPreferredLocation, Device));
-        CUDA_RT_CALL(cudaMemAdvise(outputMem, bufferSize, cudaMemAdviseSetPreferredLocation, Device));
-        CUDA_RT_CALL(cudaMemPrefetchAsync(inputMem, bufferSize, Device));
-        CUDA_RT_CALL(cudaDeviceSynchronize());
-
-        CUDA_RT_CALL(cudaGetLastError());
-
-        void* args[] = { &inputMem, &outputMem, &arrSize };
-        cudaError_t (*function)(void**) = &singleGPU::ApplyMap< MapP2 <funcType>>;
-
-        benchmarkFunction(function, args, runtimes_map_105_hinted, 3);
-
-        CUDA_RT_CALL(cudaFree(inputMem));
-        CUDA_RT_CALL(cudaFree(outputMem));
-    }
-
-
-    for(int i = 0; i < 3; i++){
-            std::cout << runtimes_map_95[i] << ", " << runtimes_map_100[i] << ", " << runtimes_map_105[i] << ", ";
-            std::cout << runtimes_map_95_hinted[i] << ", " << runtimes_map_100_hinted[i] << ", " << runtimes_map_105_hinted[i] << "\n";
-        }
-
-    for(int i = 0; i < 3; i++){
-            std::cout << runtimes_map_95_chunk[i] << ", " << runtimes_map_100_chunk[i] << ", " << runtimes_map_105_chunk[i] << ", ";
-            std::cout << runtimes_map_95_hinted_chunk[i] << ", " << runtimes_map_100_hinted_chunk[i] << ", " << runtimes_map_105_hinted_chunk[i] << "\n";
-        }
-
-
-    //Freeing Stuff
+    return 0;
 }
