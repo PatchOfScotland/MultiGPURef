@@ -50,7 +50,7 @@ namespace multiGPU {
         if(idx < N_idx){
             int64_t dIdx = idxs[idx];
             size_t range_min = devID * (N_data / deviceCount);
-            size_t range_max = (devID + 1) * (N_data / deviceCount);
+            size_t range_max = max((devID + 1) * (N_data / deviceCount), N_data);
             if(range_min < dIdx && dIdx < range_max){
                 data_old[dIdx] = data_in[dIdx];
             }
