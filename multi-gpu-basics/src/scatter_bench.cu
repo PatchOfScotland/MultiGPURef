@@ -146,6 +146,7 @@ int main(int argc, char* argv[]){
     {   // MultiGPU - Shared indexes
         void* args[] = {&data, &idxs, &data_idx, &data_length, &index_length};
         CUDA_RT_CALL(cudaMemAdvise(idxs, index_length * sizeof(funcType), cudaMemAdviseSetReadMostly, device ));
+        CUDA_RT_CALL(cudaMemAdvise(data_idx, index_length * sizeof(funcType), cudaMemAdviseSetReadMostly, device ));
         scatterBenchmarkNaiveGPU(&multiGPU::scatter_shared_indexes<funcType>, args, runtime_index_GPU, iterations, data, data_length);
     }
 
