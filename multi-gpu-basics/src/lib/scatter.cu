@@ -109,7 +109,7 @@ namespace multiGPU {
         const int64_t blockNum  = (N_idx + blockSize - 1) / blockSize;
         for(int devID = 0; devID < DeviceCount; devID++){
             cudaSetDevice(devID);
-            scatter_shared_indexes_kernel< T ><<<blockNum, blockSize>>>(data_old, idxs, data_in, N_data, N_idx, devID, Devci);
+            scatter_shared_indexes_kernel< T ><<<blockNum, blockSize>>>(data_old, idxs, data_in, N_data, N_idx, devID, DeviceCount);
         }
         cudaSetDevice(Device);
         return cudaGetLastError();
