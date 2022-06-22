@@ -3,16 +3,10 @@
 #SBATCH --ntasks=9
 #SBATCH --time=00:20:00
 #SBATCH --mem=10000m
-#SBATCH -p gpu --gres=gpu:gtx1080:2
+#SBATCH -p gpu --gres=gpu:titanrtx:4
 
-nvcc src/scatter_bench_single.cu -o build/scatter_bench_single -O3 -std=c++11
-nvcc src/scatter_bench_multi.cu -o build/scatter_bench_multi -O3 -std=c++11
-nvcc src/scatter_bench_single_no_reset.cu -o build/scatter_bench_single_no_reset -O3 -std=c++11
-nvcc src/scatter_bench_multi_no_reset.cu -o build/scatter_bench_multi_no_reset -O3 -std=c++11
+nvcc src/scatter_bench.cu -o build/scatter_bench -O3 -std=c++11 -arch=sm_61
 
-./build/scatter_bench_single data/scatter_bench_single.csv
-./build/scatter_bench_multi data/scatter_bench_multi.csv
-./build/scatter_bench_single_no_reset data/scatter_bench_single_no_reset.csv
-./build/scatter_bench_multi_no_reset data/scatter_bench_multi_no_reset.csv
+./build/scatter_bench -output data/scatter_bench_4.csv
 
 echo "DONE!"
