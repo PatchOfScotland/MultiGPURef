@@ -48,11 +48,11 @@ namespace multiGPU {
         T* data_old, int64_t* idxs, T* data_in, size_t N_data, size_t N_idx, int devID, int deviceCount){
         size_t idx = blockDim.x * blockIdx.x + threadIdx.x;
         if(idx < N_idx){
-            int64_t dIdx = idxs[idx];
+            volatile int64_t dIdx = idxs[idx];
             size_t range_min = devID * (N_data / deviceCount);
-            size_t range_max = max((devID + 1) * (N_data / deviceCount), N_data);
+            size_t range_max = min((devID + 1) * (N_data / deviceCount), N_data);
             if(range_min < dIdx && dIdx < range_max){
-                data_old[dIdx] = data_in[dIdx];
+                data_old[dIdx] = data_in[idx];
             }
         }
     }
@@ -87,7 +87,8 @@ namespace multiGPU {
 
         for(int devID = 0; devID < DeviceCount; devID++){
             cudaSetDevice(devID);
-            scatter_kernel< T ><<<blockPerDevice, blockSize>>>(data_old, idxs, data_in, N_data, N_idx, devID);
+            scatter_kernel< T ><<<blockPerDevice, blockSize>>>(
+                data_old, idxs, data_in, N_data, N_idx, devID);
         }
         cudaSetDevice(Device);
         return cudaGetLastError();
@@ -109,7 +110,8 @@ namespace multiGPU {
         const int64_t blockNum  = (N_idx + blockSize - 1) / blockSize;
         for(int devID = 0; devID < DeviceCount; devID++){
             cudaSetDevice(devID);
-            scatter_shared_indexes_kernel< T ><<<blockNum, blockSize>>>(data_old, idxs, data_in, N_data, N_idx, devID, DeviceCount);
+            scatter_shared_indexes_kernel< T ><<<blockNum, blockSize>>>(
+                data_old, idxs, data_in, N_data, N_idx, devID, DeviceCount);
         }
         cudaSetDevice(Device);
         return cudaGetLastError();
