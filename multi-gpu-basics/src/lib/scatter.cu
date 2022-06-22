@@ -150,7 +150,7 @@ namespace multiGPU {
         CUDA_RT_CALL(cudaSetDevice(Device));
         int64_t merge_blockNum = (N_data + blockSize - 1) / blockSize;
         for(int devID = 0; devID < DeviceCount; devID++){
-            CUDA_RT_CALL(cudaStreamWaitEvent(NULL, events[devID]));
+            CUDA_RT_CALL(cudaStreamWaitEvent(NULL, events[devID], cudaEventWaitDefault));
             MergeKernel<T><<<merge_blockNum, blockSize>>>(data_old, arrays[devID], N_data);
         }
         CUDA_RT_CALL(cudaDeviceSynchronize());
