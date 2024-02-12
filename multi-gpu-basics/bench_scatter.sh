@@ -5,6 +5,8 @@
 #SBATCH --mem=10000m
 #SBATCH -p gpu --gres=gpu:titanrtx:4
 
+mkdir -p build data
+
 nvcc src/scatter_bench.cu -o build/scatter_bench -O3 -std=c++11 -arch=sm_61
 
 ./build/scatter_bench -output data/scatter_bench_4.csv

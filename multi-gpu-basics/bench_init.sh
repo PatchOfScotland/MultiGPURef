@@ -5,6 +5,8 @@
 #SBATCH --mem=10000m
 #SBATCH -p gpu --gres=gpu:gtx1080:3
 
+mkdir -p build data
+
 nvcc src/initial_test_advice.cu -o build/initial_test_advice  -O3 -std=c++11
 nvcc src/initial_test_prefetch.cu -o build/initial_test_prefetch  -O3 -std=c++11
 nvcc src/initial_test.cu -o build/initial_test -O3 -std=c++11
