@@ -197,12 +197,15 @@ void DeviceSyncronize(){
     cudaSetDevice(Device);
 }
 
-void benchmarkFunction(cudaError_t (*function)(void**),void** args, float* runtimes_ms, size_t runs){
+void benchmarkFunction(cudaError_t (*function)(void**),void** args, float* runtimes_ms, size_t runs, double opsPerFunc, double flopsPerFunc){
     cudaEvent_t start_event;
     cudaEvent_t stop_event;
 
     CUDA_RT_CALL(cudaEventCreate(&start_event));
     CUDA_RT_CALL(cudaEventCreate(&stop_event));
+
+    float total_runtime = 0;
+    float* runtime = (float*)calloc(1, sizeof(float));
 
     for(size_t run = 0; run < runs; run++){
         CUDA_RT_CALL(cudaEventRecord(start_event));
@@ -211,8 +214,31 @@ void benchmarkFunction(cudaError_t (*function)(void**),void** args, float* runti
         DeviceSyncronize(); //
         CUDA_RT_CALL(cudaEventRecord(stop_event));
         CUDA_RT_CALL(cudaEventSynchronize(stop_event));
-        CUDA_RT_CALL(cudaEventElapsedTime(&runtimes_ms[run], start_event, stop_event));
+        CUDA_RT_CALL(cudaEventElapsedTime(runtime, start_event, stop_event));
+        runtimes_ms[run] = *runtime;
+        total_runtime = total_runtime + *runtime;
     }
+
+    free(runtime);
+
+    unsigned int average_runtime = total_runtime / runs;
+    float microsecPerFunc = average_runtime; 
+
+    double gigaOps = (opsPerFunc * 1.0e-3f) / microsecPerFunc; 
+    double gigaFlops = (flopsPerFunc * 1.0e-3f) / microsecPerFunc; 
+
+    printf("GPU Naive MMM version runs in: %lu microsecs", average_runtime); 
+    if ((opsPerFunc != 0) && (flopsPerFunc == 0)) {
+        printf(", Ops/sec: %.2f\n", gigaOps);
+    } 
+    else if((opsPerFunc == 0) && (flopsPerFunc != 0)) {
+        printf(", GFlops/sec: %.2f\n", gigaFlops);
+    }
+    else {
+        printf("\n");
+    }
+
+
     CUDA_RT_CALL(cudaEventDestroy(start_event));
     CUDA_RT_CALL(cudaEventDestroy(stop_event));
 }
