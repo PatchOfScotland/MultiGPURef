@@ -91,6 +91,7 @@ int main(int argc, char** argv){
     float* multi_gpu_hinted_ms = (float*)calloc(iterations, sizeof(float));
 
     { // Single GPU
+        std::cout << "Benchmarking single GPU\n";
         void* args[] = { &in, &out, &N };
         cudaError_t (*function)(void**) = &singleGPU::ApplyMap< MapP2 < funcType > >;
         benchmarkFunction(function, args, single_gpu_ms, iterations);
@@ -101,6 +102,7 @@ int main(int argc, char** argv){
         }
     }
     { // MultiGPU - No hints
+        std::cout << "Benchmarking multi GPU without hints\n";
         void* args[] = { &in, &out, &N };
         cudaError_t (*function)(void**) = &multiGPU::ApplyMap< MapP2 < funcType > >;
         benchmarkFunction(function, args, multi_gpu_ms, iterations);
@@ -111,6 +113,7 @@ int main(int argc, char** argv){
         }
     }
     {   // MultiGPU - Streams - No hints
+        std::cout << "Benchmarking multi GPU streams without hints\n";
         void* args[] = {&in, &out, &N, &streams, &num_streams};
         cudaError_t (*function)(void**) = &multiGPU::ApplyMapStreams<MapP2 < funcType > >;
         benchmarkFunction(function, args, multi_streams_ms, iterations);
@@ -124,6 +127,7 @@ int main(int argc, char** argv){
     hint1D<funcType>(out, 1024, N);
 
     { // MultiGPU
+        std::cout << "Benchmarking multi GPU with hints\n";
         void* args[] = { &in, &out, &N };
         cudaError_t (*function)(void**) = &multiGPU::ApplyMap< MapP2 < funcType > >;
         benchmarkFunction(function, args, multi_gpu_hinted_ms, iterations);
