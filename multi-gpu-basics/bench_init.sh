@@ -1,9 +1,9 @@
 #!/bin/bash
-#SBATCH --job-name=MultiGPUMap
+#SBATCH --job-name=MGPUInit
 #SBATCH --ntasks=15
 #SBATCH --time=00:20:00
 #SBATCH --mem=10000m
-#SBATCH -p gpu --gres=gpu:gtx1080:3
+#SBATCH -p gpu --gres=gpu:titanx:4
 
 mkdir -p build data
 

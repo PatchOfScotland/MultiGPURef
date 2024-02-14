@@ -1,6 +1,6 @@
 #!/bin/bash
-#SBATCH --job-name=MultiGPUMap
-#SBATCH --ntask
+#SBATCH --job-name=MGPUOversubscription
+#SBATCH --ntasks=1
 #SBATCH --time=03:00:00
 #SBATCH --mem=32000m
 #SBATCH -p gpu --gres=gpu:titanrtx:1

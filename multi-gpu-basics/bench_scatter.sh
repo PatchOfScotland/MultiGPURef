@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --job-name=MultiGPUMap
+#SBATCH --job-name=MGPUScatter
 #SBATCH --ntasks=9
 #SBATCH --time=00:20:00
 #SBATCH --mem=10000m
