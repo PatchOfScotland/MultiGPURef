@@ -113,19 +113,23 @@ int main(int argc, char** argv){
     int factors = 5;
     // No Hint - Random Order
     for(int run = 0; run < factors; run++){
+        std::cout << "*** Benchmarking random order oversubscription ***\n";
         BenchMapOverSubscriptionCPU(iterations, overSubFactors[run], &singleGPU::ApplyMap<MapP2< funcType > >, false, false);
     }
     // No Hints - fixed Order
     for(int run = 0; run < factors; run++){
+        std::cout << "*** Benchmarking fixed order oversubscription ***\n";
         BenchMapOverSubscriptionCPU(iterations, overSubFactors[run], &singleGPU::ApplyMapChunks<MapP2< funcType > >, false, false);
     }
 
     // Hint - Random Order
     for(int run = 0; run < factors; run++){
+        std::cout << "*** Benchmarking random order oversubscription with hints ***\n";
         BenchMapOverSubscriptionCPU(iterations, overSubFactors[run], &singleGPU::ApplyMap<MapP2< funcType > >, true, true);
     }
     // Hints - fixed Order
     for(int run = 0; run < factors; run++){
+        std::cout << "*** Benchmarking fixed order oversubscription with hints ***\n";
         BenchMapOverSubscriptionCPU(iterations, overSubFactors[run], &singleGPU::ApplyMapChunks<MapP2< funcType > >, true, true);
     }
     return 0;

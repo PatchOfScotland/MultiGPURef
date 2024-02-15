@@ -132,18 +132,22 @@ int main(int argc, char* argv[]){
     float* runtime_index_GPU = (float*)calloc(iterations, sizeof(float));
 
     { // Single GPU
+        std::cout << "*** Benchmarking single GPU scatter ***\n";
         void* args[] = {&data, &idxs, &data_idx, &data_length, &index_length};
         scatterBenchmarkSingleGPU(&singleGPU::scatter<funcType>, args, runtime_single_GPU, iterations, data, data_length);
     }
     { // Multi GPU
+        std::cout << "*** Benchmarking multi GPU scatter ***\n";
         void* args[] = {&data, &idxs, &data_idx, &data_length, &index_length};
         scatterBenchmarkNaiveGPU(&multiGPU::scatter<funcType>, args, runtime_multi_GPU, iterations, data, data_length);
     }
     {   // MultiGPU - Merge
+        std::cout << "*** Benchmarking multi GPU merged scatter ***\n";
         void* args[] = {&data, &idxs, &data_idx, &data_length, &index_length};
         scatterBenchmarkNaiveGPU(&multiGPU::scatter_merge<funcType>, args, runtime_merge_GPU, iterations, data, data_length);
     }
     {   // MultiGPU - Shared indexes
+        std::cout << "*** Benchmarking multi GPU scatter with shared indexes ***\n";
         void* args[] = {&data, &idxs, &data_idx, &data_length, &index_length};
         CUDA_RT_CALL(cudaMemAdvise(idxs, index_length * sizeof(funcType), cudaMemAdviseSetReadMostly, device ));
         CUDA_RT_CALL(cudaMemAdvise(data_idx, index_length * sizeof(funcType), cudaMemAdviseSetReadMostly, device ));

@@ -83,16 +83,18 @@ int main(int argc, char** argv){
     float* runtimes_multi_gpu_hinted = (float*)calloc(iterations, sizeof(float));
 
     {  // Single GPU MMM
+        std::cout << "*** Benchmarking single GPU matrix multiplication ***\n";
         void* args[] = {&A, &B, &C_single, &height_a, &width_b, &height_b};
         cudaError_t (*function)(void**) = &singleGPU::MMM<funcType, 16>;
-        benchmarkFunction(function, args, runtimes_single_gpu, iterations);
+        benchmarkFunction(function, args, runtimes_single_gpu, iterations, 2.0*height_a*width_b*height_b, 1);
         // Assume single GPU is correct
     }
 
     {  // Multi GPU MMM
+        std::cout << "*** Benchmarking multi GPU matrix multiplication ***\n";
         void* args[] = {&A, &B, &C_multi, &height_a, &width_b, &height_b};
         cudaError_t (*function)(void**) = &multiGPU::MMM<funcType, 16>;
-        benchmarkFunction(function, args, runtimes_multi_gpu, iterations);
+        benchmarkFunction(function, args, runtimes_multi_gpu, iterations, 2.0*height_a*width_b*height_b, 1);
         if(compare_arrays<funcType>(C_single, C_multi, C_length)){
             std::cout << "Multi GPU MMM is correct\n";
         } else {
@@ -104,9 +106,10 @@ int main(int argc, char** argv){
     NaiveHint<funcType>(B, B_length);
 
     {  // Multi GPU MMM  - Prefered location + Access by
+        std::cout << "*** Benchmarking multi GPU matrix multiplication with prefered access ***\n";
         void* args[] = {&A, &B, &C_multi, &height_a, &width_b, &height_b};
         cudaError_t (*function)(void**) = &multiGPU::MMM<funcType, 16>;
-        benchmarkFunction(function, args, runtimes_multi_preferAccess, iterations);
+        benchmarkFunction(function, args, runtimes_multi_preferAccess, iterations, 2.0*height_a*width_b*height_b, 1);
         if(compare_arrays<funcType>(C_single, C_multi, C_length)){
             std::cout << "Naive hinted Multi GPU MMM is correct\n";
         } else {
@@ -119,9 +122,10 @@ int main(int argc, char** argv){
 
 
     {  // Hinted Multi GPU
+        std::cout << "*** Benchmarking multi GPU matrix multiplication with hints ***\n";
         void* args[] = {&A, &B, &C_multi, &height_a, &width_b, &height_b};
         cudaError_t (*function)(void**) = &multiGPU::MMM<funcType, 16>;
-        benchmarkFunction(function, args, runtimes_multi_gpu_hinted, iterations);
+        benchmarkFunction(function, args, runtimes_multi_gpu_hinted, iterations, 2.0*height_a*width_b*height_b, 1);
         if(compare_arrays<funcType>(C_single, C_multi, C_length)){
             std::cout << "Read mostly Multi GPU MMM is correct\n";
         } else {

@@ -61,9 +61,10 @@ int main(int argc, char* argv[]){
     float* multi_gpu_system_ms = (float*)calloc(iterations, sizeof(float));
 
     { // Single GPU atomic
+        std::cout << "*** Benchmarking single GPU atomics ***\n";
         void* args[] = { &address, &threads };
         cudaError_t (*function)(void**) = &singleGPU::atomicTest;
-        benchmarkFunction(function, args, single_gpu_ms, iterations);
+        benchmarkFunction(function, args, single_gpu_ms, iterations, N*100, 0);
         CUDA_RT_CALL(cudaMemset(address, 0, sizeof(funcType)));
         CUDA_RT_CALL(cudaDeviceSynchronize());
         function(args);
@@ -75,9 +76,10 @@ int main(int argc, char* argv[]){
         }
     }
     { // Single GPU system atomic
+        std::cout << "*** Benchmarking single GPU system atomics ***\n";
         void* args[] = { &address, &threads };
         cudaError_t (*function)(void**) = &singleGPU::atomicSystemTest;
-        benchmarkFunction(function, args, single_gpu_system_ms, iterations);
+        benchmarkFunction(function, args, single_gpu_system_ms, iterations, N*100, 0);
         CUDA_RT_CALL(cudaMemset(address, 0, sizeof(funcType)));
         CUDA_RT_CALL(cudaDeviceSynchronize());
         function(args);
@@ -89,9 +91,10 @@ int main(int argc, char* argv[]){
         }
     }
     { // Multi GPU atomic
+        std::cout << "*** Benchmarking multi GPU atomics ***\n";
         void* args[] = { &address, &threads };
         cudaError_t (*function)(void**) = &multiGPU::atomicTest;
-        benchmarkFunction(function, args, multi_gpu_ms, iterations);
+        benchmarkFunction(function, args, multi_gpu_ms, iterations, N*100, 0);
         DeviceSyncronize();
         CUDA_RT_CALL(cudaMemset(address, 0, sizeof(funcType)));
         CUDA_RT_CALL(cudaDeviceSynchronize());
@@ -104,9 +107,10 @@ int main(int argc, char* argv[]){
         }
     }
     { // Multi GPU system atomic
+        std::cout << "*** Benchmarking multi GPU system atomics ***\n";
         void* args[] = { &address, &threads };
         cudaError_t (*function)(void**) = &multiGPU::atomicSystemTest;
-        benchmarkFunction(function, args, multi_gpu_system_ms, iterations);
+        benchmarkFunction(function, args, multi_gpu_system_ms, iterations, N*100, 0);
         DeviceSyncronize();
         CUDA_RT_CALL(cudaMemset(address, 0, sizeof(funcType)));
         CUDA_RT_CALL(cudaDeviceSynchronize());

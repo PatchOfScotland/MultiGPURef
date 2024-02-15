@@ -81,18 +81,20 @@ int main(int argc, char** argv){
     float* multi_image_ms = (float*)calloc(iterations, sizeof(float));
 
     { // Single GPU
+        std::cout << "*** Benchmarking single GPU stencil ***\n";
         void* args[] = {&src_image, &single_image, &stdDev, &y, &x, &convelution_size};
         cudaError_t (*function)(void**) = &singleGPU::gaussian_blur;
-        benchmarkFunction(function, args, single_ms, iterations);
+        benchmarkFunction(function, args, single_ms, iterations, N*3*convelution_size*4, 1);
         // Assume that single GPU is correct
     }
     {   // Single GPU - No Shared Memory
 
     }
     { // Multi GPU - No Hints
+        std::cout << "*** Benchmarking multi GPU stencil without hints ***\n";
         void* args[] = {&src_image, &multi_image, &stdDev, &y, &x, &convelution_size};
         cudaError_t (*function)(void**) = &multiGPU::gaussian_blur;
-        benchmarkFunction(function, args, multi_image_no_hints_ms, iterations);
+        benchmarkFunction(function, args, multi_image_no_hints_ms, iterations, N*3*convelution_size*4, 1);
         if(compare_arrays_nummeric<float>(multi_image, single_image, imageSize, TOL)){
             std::cout << "MultiGPU - No hints - produces same results as single\n";
         } else {
@@ -104,9 +106,10 @@ int main(int argc, char** argv){
     hint2DWithBorder(src_image, convelution_size, 32, y, x);
     hint2DWithBorder(multi_image, 0, 32, y, x);
     { // Multi GPU
+        std::cout << "*** Benchmarking multi GPU with hints ***\n";
         void* args[] = {&src_image, &multi_image, &stdDev, &y, &x, &convelution_size};
         cudaError_t (*function)(void**) = &multiGPU::gaussian_blur;
-        benchmarkFunction(function, args, multi_image_ms, iterations);
+        benchmarkFunction(function, args, multi_image_ms, iterations, N*3*convelution_size*4, 1);
         if(compare_arrays_nummeric<float>(multi_image, single_image, imageSize, TOL)){
             std::cout << "MultiGPU produces same results as single\n";
         } else {
