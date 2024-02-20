@@ -15,15 +15,18 @@
 #define OUTPUT_FILE_PATH "data/map.csv"
 #define STREAMS 3
 
-typedef int funcType;
+typedef float funcType;
 
 template<class T>
-class MapP2 {
+class MapPlusX {
     public:
-        typedef T InpElTp;
-        typedef T RedElTp;
+        typedef T InputElement;
+        typedef T ReturnElement;
+        typedef T X;
 
-        static __device__ __host__ RedElTp apply(const InpElTp i) {return i+2;};
+        static __device__ __host__ ReturnElement apply(const InputElement i, const X x) {
+            return i+x;
+        };
 };
 
 template <typename T>
@@ -82,19 +85,23 @@ int main(int argc, char** argv){
 
     init_array_cpu< funcType >(in, 1337, N);
     for(int i = 0; i < N; i++){
-        correct[i] = MapP2<funcType>::apply(in[i]);
+        correct[i] = MapPlusX<funcType>::apply(in[i], 5);
     }
-
+    
     float* single_gpu_ms = (float*)calloc(iterations, sizeof(float));
     float* multi_gpu_ms = (float*)calloc(iterations, sizeof(float));
     float* multi_streams_ms = (float*)calloc(iterations, sizeof(float));
     float* multi_gpu_hinted_ms = (float*)calloc(iterations, sizeof(float));
 
+    funcType* x;
+    CUDA_RT_CALL(cudaMallocManaged(&x, sizeof(funcType)));
+    *x = 5;
+
     { // Single GPU
         std::cout << "*** Benchmarking single GPU map ***\n";
-        void* args[] = { &in, &out, &N };
-        cudaError_t (*function)(void**) = &singleGPU::ApplyMap< MapP2 < funcType > >;
-        benchmarkFunction(function, args, single_gpu_ms, iterations, N, 0);
+        void* args[] = { &in, &out, &x, &N };
+        cudaError_t (*function)(void**) = &singleGPU::ApplyMap< MapPlusX < funcType > >;
+        benchmarkFunction(function, args, single_gpu_ms, iterations, N, 1);
         if(compare_arrays(correct, out, N)){
             std::cout << "Single GPU map is correct\n";
         } else {
@@ -103,9 +110,9 @@ int main(int argc, char** argv){
     }
     { // MultiGPU - No hints
         std::cout << "*** Benchmarking multi GPU map without hints ***\n";
-        void* args[] = { &in, &out, &N };
-        cudaError_t (*function)(void**) = &multiGPU::ApplyMap< MapP2 < funcType > >;
-        benchmarkFunction(function, args, multi_gpu_ms, iterations, N, 0);
+        void* args[] = { &in, &out, &x, &N };
+        cudaError_t (*function)(void**) = &multiGPU::ApplyMap< MapPlusX < funcType > >;
+        benchmarkFunction(function, args, multi_gpu_ms, iterations, N, 1);
         if(compare_arrays(correct, out, N)){
             std::cout << "Multi GPU map is correct\n";
         } else {
@@ -114,9 +121,9 @@ int main(int argc, char** argv){
     }
     {   // MultiGPU - Streams - No hints
         std::cout << "*** Benchmarking multi GPU stream map without hints ***\n";
-        void* args[] = {&in, &out, &N, &streams, &num_streams};
-        cudaError_t (*function)(void**) = &multiGPU::ApplyMapStreams<MapP2 < funcType > >;
-        benchmarkFunction(function, args, multi_streams_ms, iterations, N, 0);
+        void* args[] = {&in, &out, &x, &N, &streams, &num_streams};
+        cudaError_t (*function)(void**) = &multiGPU::ApplyMapStreams<MapPlusX < funcType > >;
+        benchmarkFunction(function, args, multi_streams_ms, iterations, N, 1);
         if(compare_arrays(correct, out, N)){
             std::cout << "Multi GPU Streams map is correct\n";
         } else {
@@ -125,12 +132,11 @@ int main(int argc, char** argv){
     }
     hint1D<funcType>(in, 1024, N);
     hint1D<funcType>(out, 1024, N);
-
     { // MultiGPU
         std::cout << "*** Benchmarking multi GPU map with hints ***\n";
-        void* args[] = { &in, &out, &N };
-        cudaError_t (*function)(void**) = &multiGPU::ApplyMap< MapP2 < funcType > >;
-        benchmarkFunction(function, args, multi_gpu_hinted_ms, iterations, N, 0);
+        void* args[] = { &in, &out, &x, &N };
+        cudaError_t (*function)(void**) = &multiGPU::ApplyMap< MapPlusX < funcType > >;
+        benchmarkFunction(function, args, multi_gpu_hinted_ms, iterations, N, 1);
         if(compare_arrays(correct, out, N)){
             std::cout << "Multi GPU map is correct\n";
         } else {
@@ -151,4 +157,5 @@ int main(int argc, char** argv){
     free(correct);
     cudaFree(in);
     cudaFree(out);
+    //cudaFree(arguments);
 }
