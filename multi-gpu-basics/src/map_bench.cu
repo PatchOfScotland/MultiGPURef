@@ -67,6 +67,14 @@ int main(int argc, char** argv){
     cudaGetDevice(&Device);
     int Devices;
     cudaGetDeviceCount(&Devices);
+
+    struct cudaDeviceProp deviceProperties;
+    cudaGetDeviceProperties(&deviceProperties, Device);
+    std::cout << "Primary device:\t\t" << deviceProperties.name << "\n";
+    for (int i=0; ((i<Devices) && (i!=Device)); i++)
+        cudaGetDeviceProperties(&deviceProperties, i);
+        std::cout << "Additional device:\t" << deviceProperties.name << "\n";
+
     cudaStream_t* streams = (cudaStream_t*)calloc(num_streams*Devices, sizeof(cudaStream_t)) ;
 
     for(int devID = 0; devID < Devices; devID++){
@@ -157,5 +165,4 @@ int main(int argc, char** argv){
     free(correct);
     cudaFree(in);
     cudaFree(out);
-    //cudaFree(arguments);
 }
