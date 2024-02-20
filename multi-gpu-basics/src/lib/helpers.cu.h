@@ -8,6 +8,17 @@
 #include<stdio.h>
 #include<stdlib.h>
 #include<unordered_set>
+#include <sys/time.h>
+#include <time.h>
+
+int timeval_subtract(struct timeval *result, struct timeval *t2, struct timeval *t1)
+{
+    unsigned int resolution=1000000;
+    long int diff = (t2->tv_usec + resolution * t2->tv_sec) - (t1->tv_usec + resolution * t1->tv_sec);
+    result->tv_sec = diff / resolution;
+    result->tv_usec = diff % resolution;
+    return (diff<0);
+}
 
 template<class T>
 __global__ void init_arr_kernel(T* data, unsigned long seed, size_t N){
@@ -205,28 +216,40 @@ void benchmarkFunction(cudaError_t (*function)(void**),void** args, float* runti
     CUDA_RT_CALL(cudaEventCreate(&stop_event));
 
     float total_runtime = 0;
+    unsigned long int elapsed;
     float* runtime = (float*)calloc(1, sizeof(float));
+    struct timeval t_start, t_end, t_diff;
 
     for(size_t run = 0; run < runs; run++){
-        CUDA_RT_CALL(cudaEventRecord(start_event));
-
+        gettimeofday(&t_start, NULL); 
         CUDA_RT_CALL(function(args));
-        DeviceSyncronize(); //
-        CUDA_RT_CALL(cudaEventRecord(stop_event));
-        CUDA_RT_CALL(cudaEventSynchronize(stop_event));
-        CUDA_RT_CALL(cudaEventElapsedTime(runtime, start_event, stop_event));
-        runtimes_ms[run] = *runtime;
-        total_runtime = total_runtime + *runtime;
+        DeviceSyncronize(); 
+        gettimeofday(&t_end, NULL);
+        timeval_subtract(&t_diff, &t_end, &t_start);
+        elapsed = (t_diff.tv_sec*1e6+t_diff.tv_usec) / runs;
+        runtimes_ms[run] = elapsed;
+        total_runtime = total_runtime + elapsed;
     }
 
     free(runtime);
 
     unsigned int average_runtime = total_runtime / runs;
     float microsecPerFunc = average_runtime; 
-
+   
     double gigaOps = (totalOps * 1.0e-3f) / microsecPerFunc; 
 
-    printf("GPU Naive MMM version runs in: %lu microsecs", average_runtime); 
+    unsigned int max_runtime = runtimes_ms[0];
+    unsigned int min_runtime = runtimes_ms[0];
+    for(size_t run = 0; run < runs; run++){
+        if (runtimes_ms[run] > max_runtime) {
+            max_runtime = runtimes_ms[run];
+        } 
+        if (runtimes_ms[run] < min_runtime) {
+            min_runtime = runtimes_ms[run];
+        } 
+    }
+
+    printf("runs in: %lu microsecs (%lu/%lu)", average_runtime, min_runtime, max_runtime); 
     if (opType == 1) {
         printf(", GFlops/sec: %.2f\n", gigaOps);
     } 

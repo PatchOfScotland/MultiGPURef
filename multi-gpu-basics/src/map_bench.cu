@@ -70,6 +70,7 @@ int main(int argc, char** argv){
 
     struct cudaDeviceProp deviceProperties;
     cudaGetDeviceProperties(&deviceProperties, Device);
+
     std::cout << "Primary device:\t\t" << deviceProperties.name << "\n";
     for (int i=0; ((i<Devices) && (i!=Device)); i++)
         cudaGetDeviceProperties(&deviceProperties, i);
