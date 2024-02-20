@@ -11,6 +11,7 @@
 #include "lib/MemoryManagement.cu"
 
 #define ENABLEPEERACCESS 1
+//#define ARRAY_LENGTH 5e9 // saturates futhark03 A100
 #define ARRAY_LENGTH 1e9
 #define OUTPUT_FILE_PATH "data/map.csv"
 #define STREAMS 3
@@ -68,13 +69,7 @@ int main(int argc, char** argv){
     int Devices;
     cudaGetDeviceCount(&Devices);
 
-    struct cudaDeviceProp deviceProperties;
-    cudaGetDeviceProperties(&deviceProperties, Device);
-
-    std::cout << "Primary device:\t\t" << deviceProperties.name << "\n";
-    for (int i=0; ((i<Devices) && (i!=Device)); i++)
-        cudaGetDeviceProperties(&deviceProperties, i);
-        std::cout << "Additional device:\t" << deviceProperties.name << "\n";
+    LogHardware();
 
     cudaStream_t* streams = (cudaStream_t*)calloc(num_streams*Devices, sizeof(cudaStream_t)) ;
 

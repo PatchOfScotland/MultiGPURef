@@ -123,7 +123,7 @@ void init_array_float(T* data, unsigned int seed, size_t N){
     }
 }
 
-void LogHardware(char filename[]){
+void LogHardware(){
     int deviceCount;
     cudaGetDeviceCount(&deviceCount);
     std::cout << "Number of devices: " << deviceCount << "\n";
