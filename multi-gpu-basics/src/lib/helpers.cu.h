@@ -209,12 +209,6 @@ void DeviceSyncronize(){
 }
 
 void benchmarkFunction(cudaError_t (*function)(void**),void** args, float* runtimes_ms, size_t runs, double totalOps, int opType){
-    cudaEvent_t start_event;
-    cudaEvent_t stop_event;
-
-    CUDA_RT_CALL(cudaEventCreate(&start_event));
-    CUDA_RT_CALL(cudaEventCreate(&stop_event));
-
     float total_runtime = 0;
     unsigned long int elapsed;
     float* runtime = (float*)calloc(1, sizeof(float));
@@ -256,10 +250,6 @@ void benchmarkFunction(cudaError_t (*function)(void**),void** args, float* runti
     else {
         printf(", Ops/sec: %.2f\n", gigaOps);
     }
-
-
-    CUDA_RT_CALL(cudaEventDestroy(start_event));
-    CUDA_RT_CALL(cudaEventDestroy(stop_event));
 }
 
 uint32_t inline closestMul32(uint32_t x) {
