@@ -57,9 +57,6 @@ int main(int argc, char** argv){
 
     std::cout << "Running array of length " << N << " (" << N*8/1e9 <<"GB)\n";
 
-    exit(0);
-
-
     bool validating = true;
     if (N > 1e9) {
         std::cout << "Skipping output validations...\n";
