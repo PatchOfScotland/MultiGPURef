@@ -55,7 +55,7 @@ int main(int argc, char** argv){
     int iterations = get_argval<int>(argv, argv + argc, "-iter", ITERATIONS);
     std::string OutputFile = get_argval<std::string>(argv, argv + argc, "-output", OUTPUT_FILE_PATH);
 
-    std::cout << "Running array of length " << N << " (" << N*8/1e9 <<"GB)\n";
+    std::cout << "Running array of length " << N << " (" << ((N*2*sizeof(funcType))/1e9) <<"GB)\n";
 
     bool validating = true;
     if (N > 1e9) {

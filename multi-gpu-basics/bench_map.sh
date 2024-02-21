@@ -9,5 +9,5 @@ mkdir -p build data
 
 nvcc src/map_bench.cu -o build/map_bench -O3
 
-./build/map_bench data/map_bench.csv -output data/map_bench_2 -n 1000000000
+./build/map_bench data/map_bench.csv -output data/map_bench_2.csv -n 1000000000
 echo "DONE"
