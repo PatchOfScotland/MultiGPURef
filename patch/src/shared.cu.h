@@ -1,9 +1,10 @@
-#ifndef CONSTANTS_H
-#define CONSTANTS_H
+#ifndef SHARED_CUDA_H
+#define SHARED_CUDA_H
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <iostream>
+#include <unistd.h>  
 
 #include "cuda.h"
 #include "cuda_runtime.h"

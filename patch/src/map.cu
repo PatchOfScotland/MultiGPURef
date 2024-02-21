@@ -1,7 +1,12 @@
 #include "shared.cu.h"
+#include "shared.h"
 
 float PlusConst(const float inputElement, const float x) {
     return inputElement + x;
+}
+
+void cpuMapping(float (*function)(float, float), float* input_array, float* output_array, float array_len) {
+    std::cout << "Hoots McGraw\n";
 }
 
 int main(int argc, char** argv){
@@ -37,16 +42,26 @@ int main(int argc, char** argv){
     float* input_array;
     float* output_array;
     float* validation_array;
+    float constant = 0.1;
 
     CCC(cudaMallocManaged(&input_array, array_len*sizeof(float)));
     CCC(cudaMallocManaged(&output_array, array_len*sizeof(float)));
     if (validating) {
-        CCC(cudaMallocManaged(&validation_array, array_len*sizeof(float)));
+        validation_array = (float*)malloc(array_len*sizeof(float));
+    }
+
+    init_array(input_array, array_len);
+
+    if (validating) {
+        cpuMapping(PlusConst, input_array, validation_array, array_len);
+        for (int i=0; i<array_len; i++) {
+            validation_array[i] = PlusConst(input_array[i], constant);
+        }
     }
 
     cudaFree(input_array);
     cudaFree(output_array);
     if (validating) {
-        cudaFree(validation_array);
+        free(validation_array);
     }
 }
