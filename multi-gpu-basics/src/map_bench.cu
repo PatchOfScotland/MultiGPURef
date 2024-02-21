@@ -11,7 +11,6 @@
 #include "lib/MemoryManagement.cu"
 
 #define ENABLEPEERACCESS 1
-//#define ARRAY_LENGTH 5e9 // saturates futhark03 A100
 #define ARRAY_LENGTH 1e9
 #define OUTPUT_FILE_PATH "data/map.csv"
 #define STREAMS 3
@@ -56,6 +55,16 @@ int main(int argc, char** argv){
     int iterations = get_argval<int>(argv, argv + argc, "-iter", ITERATIONS);
     std::string OutputFile = get_argval<std::string>(argv, argv + argc, "-output", OUTPUT_FILE_PATH);
 
+    std::cout << "Running array of length " << N << " (" << N*8/1e9 <<"GB)\n";
+
+    exit(0);
+
+
+    bool validating = true;
+    if (N > 1e9) {
+        std::cout << "Skipping output validations...\n";
+        validating = false;
+    }
 
     std::ofstream File(OutputFile);
 
@@ -82,14 +91,20 @@ int main(int argc, char** argv){
 
     funcType* in;
     funcType* out;
-    funcType* correct = (funcType*)calloc(N, sizeof(funcType));
+    funcType* correct;
+    
+    if (validating) {
+        correct = (funcType*)calloc(N, sizeof(funcType));
+    }
 
     CUDA_RT_CALL(cudaMallocManaged(&in, N*sizeof(funcType)));
     CUDA_RT_CALL(cudaMallocManaged(&out, N*sizeof(funcType)));
 
     init_array_cpu< funcType >(in, 1337, N);
-    for(int i = 0; i < N; i++){
-        correct[i] = MapPlusX<funcType>::apply(in[i], 5);
+    if (validating) {
+        for(int i = 0; i < N; i++){
+            correct[i] = MapPlusX<funcType>::apply(in[i], 5);
+        }
     }
     
     float* single_gpu_ms = (float*)calloc(iterations, sizeof(float));
@@ -106,10 +121,12 @@ int main(int argc, char** argv){
         void* args[] = { &in, &out, &x, &N };
         cudaError_t (*function)(void**) = &singleGPU::ApplyMap< MapPlusX < funcType > >;
         benchmarkFunction(function, args, single_gpu_ms, iterations, N, 1);
-        if(compare_arrays(correct, out, N)){
-            std::cout << "Single GPU map is correct\n";
-        } else {
-            std::cout << "Single GPU map is incorrect\n";
+        if (validating) {
+            if(compare_arrays(correct, out, N)){
+                std::cout << "Single GPU map is correct\n";
+            } else {
+                std::cout << "Single GPU map is incorrect\n";
+            }
         }
     }
     { // MultiGPU - No hints
@@ -117,10 +134,12 @@ int main(int argc, char** argv){
         void* args[] = { &in, &out, &x, &N };
         cudaError_t (*function)(void**) = &multiGPU::ApplyMap< MapPlusX < funcType > >;
         benchmarkFunction(function, args, multi_gpu_ms, iterations, N, 1);
-        if(compare_arrays(correct, out, N)){
-            std::cout << "Multi GPU map is correct\n";
-        } else {
-            std::cout << "Multi GPU map is incorrect\n";
+        if (validating) {
+            if(compare_arrays(correct, out, N)){
+                std::cout << "Multi GPU map is correct\n";
+            } else {
+                std::cout << "Multi GPU map is incorrect\n";
+            }
         }
     }
     {   // MultiGPU - Streams - No hints
@@ -128,10 +147,12 @@ int main(int argc, char** argv){
         void* args[] = {&in, &out, &x, &N, &streams, &num_streams};
         cudaError_t (*function)(void**) = &multiGPU::ApplyMapStreams<MapPlusX < funcType > >;
         benchmarkFunction(function, args, multi_streams_ms, iterations, N, 1);
-        if(compare_arrays(correct, out, N)){
-            std::cout << "Multi GPU Streams map is correct\n";
-        } else {
-            std::cout << "Multi GPU Streams map is incorrect\n";
+        if (validating) {
+            if(compare_arrays(correct, out, N)){
+                std::cout << "Multi GPU Streams map is correct\n";
+            } else {
+                std::cout << "Multi GPU Streams map is incorrect\n";
+            }
         }
     }
     hint1D<funcType>(in, 1024, N);
@@ -141,13 +162,14 @@ int main(int argc, char** argv){
         void* args[] = { &in, &out, &x, &N };
         cudaError_t (*function)(void**) = &multiGPU::ApplyMap< MapPlusX < funcType > >;
         benchmarkFunction(function, args, multi_gpu_hinted_ms, iterations, N, 1);
-        if(compare_arrays(correct, out, N)){
-            std::cout << "Multi GPU map is correct\n";
-        } else {
-            std::cout << "Multi GPU map is incorrect\n";
+        if (validating) {
+            if(compare_arrays(correct, out, N)){
+                std::cout << "Multi GPU map is correct\n";
+            } else {
+                std::cout << "Multi GPU map is incorrect\n";
+            }
         }
     }
-
 
     for(int run = 0; run < iterations; run++){
         File << single_gpu_ms[run]
@@ -157,8 +179,9 @@ int main(int argc, char** argv){
     }
     File.close();
 
-
-    free(correct);
+    if (validating) {
+        free(correct);
+    }
     cudaFree(in);
     cudaFree(out);
 }
