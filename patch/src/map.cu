@@ -1,12 +1,20 @@
+#include <functional>
+
 #include "shared.cu.h"
 #include "shared.h"
 
-float PlusConst(const float inputElement, const float x) {
+typedef float arrayType;
+
+template <typename T>
+T PlusConst(const T inputElement, const T x) {
     return inputElement + x;
 }
 
-void cpuMapping(float (*function)(float, float), float* input_array, float* output_array, float array_len) {
-    std::cout << "Hoots McGraw\n";
+void cpuMapping(std::function<float(float,float)> mapped_function, float* input_array, const float constant, float* output_array, float array_len) {  
+    #pragma omp parallel for
+    for (int i=0; i<array_len; i++) {
+        output_array[i] = mapped_function(input_array[i], constant);
+    }
 }
 
 int main(int argc, char** argv){
@@ -30,7 +38,7 @@ int main(int argc, char** argv){
     std::cout << "Running array of length " 
               << array_len 
               << " (" 
-              << ((array_len*2*sizeof(float))/1e9) 
+              << ((array_len*2*sizeof(arrayType))/1e9) 
               <<"GB)\n";
     if (validating) {
         std::cout << "Will validate output\n";
@@ -39,24 +47,22 @@ int main(int argc, char** argv){
         std::cout << "Skipping output validation\n";
     }
 
-    float* input_array;
-    float* output_array;
-    float* validation_array;
-    float constant = 0.1;
+    arrayType* input_array;
+    arrayType* output_array;
+    arrayType* validation_array;
+    arrayType constant = 0.1;
 
-    CCC(cudaMallocManaged(&input_array, array_len*sizeof(float)));
-    CCC(cudaMallocManaged(&output_array, array_len*sizeof(float)));
+    CCC(cudaMallocManaged(&input_array, array_len*sizeof(arrayType)));
+    CCC(cudaMallocManaged(&output_array, array_len*sizeof(arrayType)));
     if (validating) {
-        validation_array = (float*)malloc(array_len*sizeof(float));
+        validation_array = (arrayType*)malloc(array_len*sizeof(arrayType));
     }
 
     init_array(input_array, array_len);
 
     if (validating) {
-        cpuMapping(PlusConst, input_array, validation_array, array_len);
-        for (int i=0; i<array_len; i++) {
-            validation_array[i] = PlusConst(input_array[i], constant);
-        }
+        std::function<arrayType(arrayType,arrayType)> mapped_function = PlusConst<arrayType>;
+        cpuMapping(mapped_function, input_array, constant, validation_array, array_len);
     }
 
     cudaFree(input_array);
