@@ -5,16 +5,38 @@
 
 typedef float arrayType;
 
+// Toy function to be mapped accross an array. Just adds a constant x to an 
+// element
 template <typename T>
 T PlusConst(const T inputElement, const T x) {
     return inputElement + x;
 }
 
-void cpuMapping(std::function<float(float,float)> mapped_function, float* input_array, const float constant, float* output_array, float array_len) {  
+// Mapping function that takes a function and maps it across each element in an
+// input array, with the output in a new output array. Opperates entirely on 
+// the CPU. 
+template<typename F, typename T>
+void cpuMapping(F mapped_function, T* input_array, const T constant, T* output_array, int array_len) {  
     #pragma omp parallel for
     for (int i=0; i<array_len; i++) {
         output_array[i] = mapped_function(input_array[i], constant);
     }
+}
+
+template<typename T>
+__global__ void singleGpuKernel(T* input_array, const T x, T* output_array, int array_len) {
+    size_t index = blockDim.x * blockIdx.x + threadIdx.x;
+    if (index < array_len) {
+        output_array[index] = input_array[index] + x;
+    }
+}
+
+template<typename F, typename T>
+void singleGpuMapping(F mapped_kernel, T* input_array, const T constant, T* output_array, int array_len) {  
+    size_t block_size = 1024;
+    size_t block_count = (array_len + block_size - 1) / block_size;
+
+    mapped_kernel<<<block_count, block_size>>>(input_array, constant, output_array, array_len);
 }
 
 int main(int argc, char** argv){
@@ -54,20 +76,43 @@ int main(int argc, char** argv){
 
     CCC(cudaMallocManaged(&input_array, array_len*sizeof(arrayType)));
     CCC(cudaMallocManaged(&output_array, array_len*sizeof(arrayType)));
-    if (validating) {
-        validation_array = (arrayType*)malloc(array_len*sizeof(arrayType));
-    }
 
     init_array(input_array, array_len);
 
     if (validating) {
-        std::function<arrayType(arrayType,arrayType)> mapped_function = PlusConst<arrayType>;
-        cpuMapping(mapped_function, input_array, constant, validation_array, array_len);
+        validation_array = (arrayType*)malloc(array_len*sizeof(arrayType));
+        cpuMapping(PlusConst<arrayType>, input_array, constant, validation_array, array_len);
+
+        std::cout << input_array[0] << ", " << input_array[1] << "\n";
+        std::cout << validation_array[0] << ", " << validation_array[1] << "\n";
     }
 
-    cudaFree(input_array);
-    cudaFree(output_array);
+
+    // Warmup run
+
+    { // Benchmark a single GPU
+        std::cout << "*** Benchmarking single GPU map ***\n";
+
+        singleGpuMapping(singleGpuKernel<arrayType>, input_array, constant, output_array, array_len);
+
+        cudaDeviceSynchronize(); 
+
+        if (validating) {
+            if(compare_arrays(validation_array, output_array, array_len)){
+                std::cout << "  Single GPU map is correct\n";
+            } else {
+                std::cout << "  Single GPU map is incorrect\n";
+            }
+        }
+    }
+
+//    for (int i=0; i<array_len; i++) {
+//        std::cout << validation_array[i] << ", \t" << output_array[i] << "\n";
+//    }
+
     if (validating) {
         free(validation_array);
     }
+    cudaFree(input_array);
+    cudaFree(output_array);
 }

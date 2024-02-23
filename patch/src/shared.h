@@ -12,8 +12,23 @@ void init_array(float* arr, size_t n) {
     }
 }
 
-void benchmarkFunction(float (*function)(float, float), float* input_array, const float constant, float* output_array, float array_len) {
-    
+template<class T>
+bool compare_arrays(T* array_1, T* array_2, size_t array_len){
+
+    bool status = true;
+    #pragma omp parallel for
+    for(size_t i=0; i<array_len; i++){
+        if (array_1[i] != array_2[i]){
+            //std::cout << "i:" << i << " array_1: " << array_1[i] << " array_2: " << array_2[i] <<"\n";
+            status = false;
+        }
+    }
+    return status;
+}
+
+template<typename F, typename T>
+void benchmarkFunction(F function, T* input_array, T constant, T* output_array, T array_len) {
+
 }
 
 #endif
