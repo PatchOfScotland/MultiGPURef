@@ -14,7 +14,7 @@
 int timeval_subtract(struct timeval *result, struct timeval *t2, struct timeval *t1)
 {
     unsigned int resolution=1000000;
-    long int diff = (t2->tv_usec + resolution * t2->tv_sec) - (t1->tv_usec + resolution * t1->tv_sec);
+    long int diff = (t2->tv_usec + (resolution * t2->tv_sec)) - (t1->tv_usec + (resolution * t1->tv_sec));
     result->tv_sec = diff / resolution;
     result->tv_usec = diff % resolution;
     return (diff<0);
@@ -208,11 +208,14 @@ void DeviceSyncronize(){
     cudaSetDevice(Device);
 }
 
-void benchmarkFunction(cudaError_t (*function)(void**),void** args, float* runtimes_ms, size_t runs, double totalOps, int opType){
+void benchmarkFunction(cudaError_t (*function)(void**),void** args, float* runtimes_ms, size_t runs, float dataSize){
     float total_runtime = 0;
     unsigned long int elapsed;
     float* runtime = (float*)calloc(1, sizeof(float));
     struct timeval t_start, t_end, t_diff;
+
+    CUDA_RT_CALL(function(args));
+    DeviceSyncronize(); 
 
     for(size_t run = 0; run < runs; run++){
         gettimeofday(&t_start, NULL); 
@@ -220,7 +223,7 @@ void benchmarkFunction(cudaError_t (*function)(void**),void** args, float* runti
         DeviceSyncronize(); 
         gettimeofday(&t_end, NULL);
         timeval_subtract(&t_diff, &t_end, &t_start);
-        elapsed = (t_diff.tv_sec*1e6+t_diff.tv_usec) / runs;
+        elapsed = (t_diff.tv_sec*1e6+t_diff.tv_usec);
         runtimes_ms[run] = elapsed;
         total_runtime = total_runtime + elapsed;
     }
@@ -228,9 +231,9 @@ void benchmarkFunction(cudaError_t (*function)(void**),void** args, float* runti
     free(runtime);
 
     unsigned int average_runtime = total_runtime / runs;
-    float microsecPerFunc = average_runtime; 
+    float secPerFunc = (float)average_runtime / 1000000 ; 
    
-    double gigaOps = (totalOps * 1.0e-3f) / microsecPerFunc; 
+    float gigaOps = (float)dataSize / secPerFunc; 
 
     unsigned int max_runtime = runtimes_ms[0];
     unsigned int min_runtime = runtimes_ms[0];
@@ -244,12 +247,7 @@ void benchmarkFunction(cudaError_t (*function)(void**),void** args, float* runti
     }
 
     printf("runs in: %lu microsecs (%lu/%lu)", average_runtime, min_runtime, max_runtime); 
-    if (opType == 1) {
-        printf(", GFlops/sec: %.2f\n", gigaOps);
-    } 
-    else {
-        printf(", Ops/sec: %.2f\n", gigaOps);
-    }
+    printf(" at %.2fGB/sec\n", gigaOps);
 }
 
 uint32_t inline closestMul32(uint32_t x) {

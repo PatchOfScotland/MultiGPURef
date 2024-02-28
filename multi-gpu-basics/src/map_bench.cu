@@ -117,7 +117,7 @@ int main(int argc, char** argv){
         std::cout << "*** Benchmarking single GPU map ***\n";
         void* args[] = { &in, &out, &x, &N };
         cudaError_t (*function)(void**) = &singleGPU::ApplyMap< MapPlusX < funcType > >;
-        benchmarkFunction(function, args, single_gpu_ms, iterations, N, 1);
+        benchmarkFunction(function, args, single_gpu_ms, iterations, ((N*2*sizeof(funcType))/1e9));
         if (validating) {
             if(compare_arrays(correct, out, N)){
                 std::cout << "Single GPU map is correct\n";
@@ -130,7 +130,7 @@ int main(int argc, char** argv){
         std::cout << "*** Benchmarking multi GPU map without hints ***\n";
         void* args[] = { &in, &out, &x, &N };
         cudaError_t (*function)(void**) = &multiGPU::ApplyMap< MapPlusX < funcType > >;
-        benchmarkFunction(function, args, multi_gpu_ms, iterations, N, 1);
+        benchmarkFunction(function, args, multi_gpu_ms, iterations, ((N*2*sizeof(funcType))/1e9));
         if (validating) {
             if(compare_arrays(correct, out, N)){
                 std::cout << "Multi GPU map is correct\n";
@@ -143,7 +143,7 @@ int main(int argc, char** argv){
         std::cout << "*** Benchmarking multi GPU stream map without hints ***\n";
         void* args[] = {&in, &out, &x, &N, &streams, &num_streams};
         cudaError_t (*function)(void**) = &multiGPU::ApplyMapStreams<MapPlusX < funcType > >;
-        benchmarkFunction(function, args, multi_streams_ms, iterations, N, 1);
+        benchmarkFunction(function, args, multi_streams_ms, iterations, ((N*2*sizeof(funcType))/1e9));
         if (validating) {
             if(compare_arrays(correct, out, N)){
                 std::cout << "Multi GPU Streams map is correct\n";
@@ -158,7 +158,7 @@ int main(int argc, char** argv){
         std::cout << "*** Benchmarking multi GPU map with hints ***\n";
         void* args[] = { &in, &out, &x, &N };
         cudaError_t (*function)(void**) = &multiGPU::ApplyMap< MapPlusX < funcType > >;
-        benchmarkFunction(function, args, multi_gpu_hinted_ms, iterations, N, 1);
+        benchmarkFunction(function, args, multi_gpu_hinted_ms, iterations, ((N*2*sizeof(funcType))/1e9));
         if (validating) {
             if(compare_arrays(correct, out, N)){
                 std::cout << "Multi GPU map is correct\n";
